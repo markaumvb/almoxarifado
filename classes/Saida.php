@@ -11,15 +11,16 @@ class Saida {
         try {
             $this->db->beginTransaction();
             
-            // Verificar se há saldo suficiente
+            // Verificar se o item existe
             $item = new Item();
             $itemData = $item->getItemByCodigo($data['codigo']);
             
-            if (!$itemData || $itemData['SALDO'] < $data['qtde']) {
+            if (!$itemData) {
                 $this->db->rollBack();
                 return false;
             }
             
+            // Inserir a saída
             $this->db->query('INSERT INTO SAIDA (CODIGO, QTDE, ID_SERVIDOR, DATA, OBS) 
                             VALUES (:codigo, :qtde, :id_servidor, :data, :obs)');
             
@@ -32,7 +33,7 @@ class Saida {
             $this->db->execute();
             $saida_id = $this->db->lastInsertId();
             
-            // Atualizar saldo do item
+            // Atualizar saldo do item (permitir ficar negativo)
             if (!$item->updateSaldo($data['codigo'], $data['qtde'], 'saida')) {
                 $this->db->rollBack();
                 return false;
@@ -212,7 +213,7 @@ class Saida {
             if ($result['items_failed'] > 0) {
                 $this->db->rollBack();
                 $result['success'] = false;
-                $result['message'] = 'Não foi possível salvar todos os itens. Verifique o saldo disponível.';
+                $result['message'] = 'Erro ao registrar alguns itens.';
             } else {
                 $this->db->commit();
                 $result['message'] = 'Saída registrada com sucesso. ' . $result['items_saved'] . ' item(ns) registrado(s).';

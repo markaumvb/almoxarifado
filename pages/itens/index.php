@@ -30,8 +30,6 @@ $itens = $item->getItems();
                             <th>Código</th>
                             <th>Nome</th>
                             <th>Tipo</th>
-                            <th>Saldo</th>
-                            <th>Saldo Mínimo</th>
                             <th>Unidade</th>
                             <th>Ações</th>
                         </tr>
@@ -55,9 +53,7 @@ $itens = $item->getItems();
                                 }
                                 ?>
                             </td>
-                            <td class="<?php echo ($i['SALDO'] < $i['SALDO_MINIMO']) ? 'text-danger' : ''; ?>">
-                                <?php echo number_format($i['SALDO'], 2, ',', '.'); ?></td>
-                            <td><?php echo number_format($i['SALDO_MINIMO'], 2, ',', '.'); ?></td>
+
                             <td><?php echo isset($i['unidade_nome']) ? $i['unidade_nome'] : ''; ?></td>
                             <td>
                                 <a href="<?php echo URL_ROOT; ?>/pages/itens/edit.php?id=<?php echo $i['ID']; ?>" class="btn btn-sm btn-warning" data-bs-toggle="tooltip" title="Editar">

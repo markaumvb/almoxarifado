@@ -82,7 +82,6 @@ include_once '../../includes/header.php';
                         <table class="table table-bordered table-hover" id="dataTable">
                             <thead class="table-light">
                                 <tr>
-                                    <th>ID</th>
                                     <th>Data</th>
                                     <th>Código</th>
                                     <th>Item</th>
@@ -100,7 +99,6 @@ include_once '../../includes/header.php';
                                 <?php else: ?>
                                     <?php foreach ($dados as $saida): ?>
                                     <tr>
-                                        <td><?php echo $saida['ID']; ?></td>
                                         <td><?php echo date('d/m/Y', strtotime($saida['DATA'])); ?></td>
                                         <td><?php echo $saida['CODIGO']; ?></td>
                                         <td><?php echo $saida['item_nome']; ?></td>

@@ -10,7 +10,7 @@ class Item {
     // Obter todos os itens
     public function getItems() {
         try {
-            $this->db->query('SELECT i.*, u.NOME as UNIDADE_NOME 
+            $this->db->query('SELECT i.*, u.NOME as unidade_nome 
             FROM ITENS i 
             LEFT JOIN UNIDADE_MEDIDA u ON i.ID_UNIDADE = u.ID
             ORDER BY i.NOME');
@@ -65,21 +65,7 @@ class Item {
         }
     }
     
-    // Verificar se há saldo suficiente
-    public function checkSaldo($codigo, $quantidade) {
-        try {
-            $item = $this->getItemByCodigo($codigo);
-            
-            if (!$item) {
-                return false;
-            }
-            
-            return $item['SALDO'] >= $quantidade;
-        } catch (PDOException $e) {
-            error_log('Erro ao verificar saldo: ' . $e->getMessage());
-            return false;
-        }
-    }
+    // Verificar se há saldo suficiente - REMOVIDA, NÃO UTILIZADA MAIS
 
     // Adicionar item
     public function add($data) {
@@ -160,6 +146,8 @@ class Item {
                 ? $item['SALDO'] + $qtde 
                 : $item['SALDO'] - $qtde;
             
+            // Não há mais verificação se o saldo ficará negativo
+            
             $this->db->query('UPDATE ITENS SET SALDO = :saldo WHERE CODIGO = :codigo');
             $this->db->bind(':saldo', $novoSaldo);
             $this->db->bind(':codigo', $codigo);
@@ -170,5 +158,4 @@ class Item {
             return false;
         }
     }
-
 }

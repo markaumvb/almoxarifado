@@ -12,7 +12,12 @@ $servidor = new Servidor();
 $saida = new Saida();
 
 // Obter todos os servidores para o select
-$servidores = $servidor->getServidoresAtivos();
+$servidores = $servidor->getServidores();
+
+// Filtrar apenas servidores ativos
+$servidores = array_filter($servidores, function($srv) {
+    return isset($srv['STATUS']) && $srv['STATUS'] == 'A';
+});
 
 // Inicializar variáveis da sessão para itens temporários
 if (!isset($_SESSION['temp_saida_items'])) {
@@ -118,50 +123,70 @@ if (isset($_POST['finalizar_saida'])) {
     
     if (empty($_SESSION['temp_saida_items'])) {
         setMessage('Adicione pelo menos um item à lista', 'danger');
-    } else {
-        $success = true;
-        $saidas_registradas = 0;
-        
-        // Iniciar transação
+        header('Location: registrar.php');
+        exit;
+    }
+    
+    // Abordagem simplificada sem transações para cada item
+    $saidas_registradas = 0;
+    $saidas_falhas = 0;
+    
+    // Registrar cada item individualmente
+    foreach ($_SESSION['temp_saida_items'] as $key => $item_data) {
         try {
+            // Preparar dados da saída
+            $saida_data = [
+                'codigo' => $item_data['codigo'],
+                'qtde' => $item_data['qtde'],
+                'id_servidor' => $item_data['id_servidor'],
+                'data' => $data,
+                'obs' => !empty($item_data['observacao']) ? $item_data['observacao'] : $observacao
+            ];
+            
+            // Inserir na tabela SAIDA
             $db = new Database();
-            $db->beginTransaction();
+            $db->query('INSERT INTO SAIDA (CODIGO, QTDE, ID_SERVIDOR, DATA, OBS) 
+                      VALUES (:codigo, :qtde, :id_servidor, :data, :obs)');
             
-            // Registrar cada item
-            foreach ($_SESSION['temp_saida_items'] as $item_data) {
-                $saida_data = [
-                    'codigo' => $item_data['codigo'],
-                    'qtde' => $item_data['qtde'],
-                    'id_servidor' => $item_data['id_servidor'],
-                    'data' => $data,
-                    'obs' => !empty($item_data['observacao']) ? $item_data['observacao'] : $observacao
-                ];
+            $db->bind(':codigo', $saida_data['codigo']);
+            $db->bind(':qtde', $saida_data['qtde']);
+            $db->bind(':id_servidor', $saida_data['id_servidor']);
+            $db->bind(':data', $saida_data['data']);
+            $db->bind(':obs', $saida_data['obs']);
+            
+            $db->execute();
+            
+            // Atualizar saldo do item
+            $itemObj = $item->getItemByCodigo($saida_data['codigo']);
+            if ($itemObj) {
+                $novoSaldo = $itemObj['SALDO'] - $saida_data['qtde'];
                 
-                $result = $saida->add($saida_data);
-                if ($result) {
-                    $saidas_registradas++;
-                } else {
-                    $success = false;
-                    break;
-                }
+                $db->query('UPDATE ITENS SET SALDO = :saldo WHERE CODIGO = :codigo');
+                $db->bind(':saldo', $novoSaldo);
+                $db->bind(':codigo', $saida_data['codigo']);
+                $db->execute();
             }
             
-            if ($success) {
-                $db->commit();
-                // Limpar itens temporários
-                $_SESSION['temp_saida_items'] = [];
-                setMessage("Saída finalizada com sucesso! {$saidas_registradas} item(ns) registrado(s).", 'success');
-            } else {
-                $db->rollBack();
-                setMessage('Erro ao registrar saída. Verifique se há saldo suficiente para todos os itens.', 'danger');
-            }
+            $saidas_registradas++;
+            
         } catch (Exception $e) {
-            if (isset($db) && $db->inTransaction()) {
-                $db->rollBack();
-            }
-            setMessage('Erro ao processar saída: ' . $e->getMessage(), 'danger');
-            error_log('Erro na saída: ' . $e->getMessage());
+            error_log('Erro ao registrar saída do item ' . $item_data['codigo'] . ': ' . $e->getMessage());
+            $saidas_falhas++;
         }
+    }
+    
+    // Verificar resultados
+    if ($saidas_registradas > 0) {
+        // Limpar a lista de itens temporários
+        $_SESSION['temp_saida_items'] = [];
+        
+        if ($saidas_falhas > 0) {
+            setMessage("Saídas registradas parcialmente: {$saidas_registradas} item(ns) salvo(s) e {$saidas_falhas} falha(s).", 'warning');
+        } else {
+            setMessage("Saída finalizada com sucesso! {$saidas_registradas} item(ns) registrado(s).", 'success');
+        }
+    } else {
+        setMessage('Erro ao registrar saídas. Nenhum item foi registrado.', 'danger');
     }
     
     // Redirecionar para evitar reenvio

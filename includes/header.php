@@ -90,13 +90,7 @@ if (!isLoggedIn()) {
                         <i class="fas fa-chart-bar me-2"></i> Relatórios
                     </a>
                 </li>
-                <?php if (hasPermission(3)): ?>
-                <li>
-                    <a href="<?php echo URL_ROOT; ?>/pages/usuarios/listar.php" class="nav-link text-white">
-                        <i class="fas fa-users-cog me-2"></i> Usuários
-                    </a>
-                </li>
-                <?php endif; ?>
+               
             </ul>
             
         </nav>

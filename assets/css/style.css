@@ -212,3 +212,74 @@ ul.collapse {
 #cadastrosSubmenu a {
   padding-left: 30px;
 }
+
+/* Estilo para o display do nome do item */
+.item-name-display {
+  min-height: 38px;
+  line-height: 24px;
+  padding: 6px 12px;
+  font-size: 1rem;
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+  background-color: #f8f9fa !important; /* Sobrescreve qualquer estilo inline */
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* Estados diferentes do display de nome */
+.item-name-display.item-found {
+  color: #212529;
+  background-color: #e8f4f8 !important;
+  border-color: #86b7fe;
+}
+
+.item-name-display.item-not-found {
+  color: #dc3545;
+  background-color: #f8d7da !important;
+  border-color: #f5c2c7;
+}
+
+.item-name-display.item-searching {
+  color: #0d6efd;
+  background-color: #cfe2ff !important;
+  border-color: #9ec5fe;
+}
+
+/* Estilos para a tabela de itens */
+.table th {
+  font-weight: 600;
+  background-color: #f8f9fa;
+}
+
+/* Estilo para o botão de busca no grupo de input */
+.input-group .btn-outline-primary {
+  border-color: #ced4da;
+  background-color: #f8f9fa;
+}
+
+.input-group .btn-outline-primary:hover {
+  background-color: #0d6efd;
+  color: white;
+  border-color: #0d6efd;
+}
+
+/* Estilo para destacar quantidades negativas */
+.text-negative {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+/* Estilo para linhas com estoque baixo */
+tr.low-stock td {
+  background-color: #fff3cd;
+}
+
+/* Melhorias para responsividade em telas pequenas */
+@media (max-width: 767.98px) {
+  .item-name-display {
+    margin-top: 10px;
+  }
+
+  .col-md-2.d-flex.align-items-end {
+    margin-top: 10px;
+  }
+}

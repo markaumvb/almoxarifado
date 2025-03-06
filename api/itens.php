@@ -1,11 +1,5 @@
 <?php
-// api/itens.php
 
-// Para depuração - remover após correção
-error_log('API foi chamada. Método: ' . $_SERVER['REQUEST_METHOD']);
-
-// Definir o path absoluto para a raiz do projeto
-define('ROOT_PATH', dirname(dirname(__FILE__)) . '/');
 
 // Incluir os arquivos de configuração
 require_once ROOT_PATH . 'config/config.php';

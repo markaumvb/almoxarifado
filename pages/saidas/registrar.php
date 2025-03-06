@@ -190,12 +190,16 @@ include_once '../../includes/header.php';
                         <div class="row mb-4">
                             <div class="col-md-3">
                                 <label for="codigo" class="form-label">Código do Item</label>
-                                <input type="text" class="form-control" id="codigo" name="codigo" required>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="codigo" name="codigo" required>
+                                    <button type="button" class="btn btn-outline-primary" id="btn-buscar-item">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="col-md-5">
                                 <label class="form-label">Nome do Item</label>
-                                <div class="form-control bg-light" id="nome_item_display">Nenhum item selecionado</div>
-                                <input type="hidden" id="nome_item" name="nome_item">
+                                <div class="form-control bg-light item-name-display" id="nome_item_display">Nenhum item selecionado</div>
                             </div>
                             <div class="col-md-2">
                                 <label for="qtde" class="form-label">Quantidade</label>
@@ -305,61 +309,88 @@ include_once '../../includes/header.php';
     </div>
 </div>
 
-<!-- Modal e outros elementos HTML... -->
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Busca de item pelo código
+    // Elementos do DOM
     const codigoInput = document.getElementById('codigo');
     const nomeItemDisplay = document.getElementById('nome_item_display');
+    const btnBuscarItem = document.getElementById('btn-buscar-item');
     
-    // Adicione este log para verificar se o JavaScript está sendo executado
-    console.log('JavaScript para busca de itens inicializado');
-    
-    // Log para garantir que os elementos foram encontrados
-    console.log('Elemento código:', codigoInput);
-    console.log('Elemento nome display:', nomeItemDisplay);
-    
-    codigoInput.addEventListener('input', function() {
-        const codigo = this.value.trim();
-        console.log('Código digitado:', codigo); // Log para depuração
+    // Função para buscar item pelo código
+    function buscarItem() {
+        const codigo = codigoInput.value.trim();
         
-        if (codigo) {
-            // URL da API clara para facilitar a depuração
-            const apiUrl = '../../api/itens.php?codigo=' + encodeURIComponent(codigo);
-            console.log('Consultando API:', apiUrl);
+        if (codigo.length > 0) {
+            nomeItemDisplay.textContent = "Buscando...";
+            nomeItemDisplay.style.color = "blue";
             
-            // Fazer requisição AJAX para buscar o nome do item pelo código
-            fetch(apiUrl)
-                .then(response => {
-                    console.log('Resposta da API:', response);
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Dados recebidos:', data);
-                    if (data && data.length > 0) {
-                        nomeItemDisplay.textContent = data[0].NOME;
-                        nomeItemDisplay.style.color = 'black';
-                    } else {
-                        nomeItemDisplay.textContent = 'Item não encontrado';
+            // Fazer requisição AJAX
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '../../api/itens.php?codigo=' + encodeURIComponent(codigo), true);
+            
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        if (data && data.length > 0) {
+                            nomeItemDisplay.textContent = data[0].NOME;
+                            nomeItemDisplay.style.color = 'black';
+                        } else {
+                            nomeItemDisplay.textContent = 'Item não encontrado';
+                            nomeItemDisplay.style.color = 'red';
+                        }
+                    } catch (e) {
+                        console.error('Erro ao processar resposta:', e);
+                        nomeItemDisplay.textContent = 'Erro ao processar dados';
                         nomeItemDisplay.style.color = 'red';
                     }
-                })
-                .catch(error => {
-                    console.error('Erro ao buscar item:', error);
-                    nomeItemDisplay.textContent = 'Erro ao buscar item';
+                } else {
+                    nomeItemDisplay.textContent = 'Erro na requisição';
                     nomeItemDisplay.style.color = 'red';
-                });
+                }
+            };
+            
+            xhr.onerror = function() {
+                nomeItemDisplay.textContent = 'Erro na conexão';
+                nomeItemDisplay.style.color = 'red';
+            };
+            
+            xhr.send();
         } else {
             nomeItemDisplay.textContent = 'Nenhum item selecionado';
             nomeItemDisplay.style.color = 'grey';
         }
-    });
+    }
     
-    // Resto do código...
+    // Adicionar evento ao botão de busca
+    if (btnBuscarItem) {
+        btnBuscarItem.addEventListener('click', buscarItem);
+    }
+    
+    // Adicionar evento de tecla Enter no campo de código
+    if (codigoInput) {
+        codigoInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Prevenir o envio do formulário
+                buscarItem();
+            }
+        });
+    }
+    
+    // Script para preencher o modal de edição
+    const editButtons = document.querySelectorAll('.edit-item');
+    
+    editButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const qtde = this.getAttribute('data-qtde');
+            
+            document.getElementById('edit_temp_id').value = id;
+            document.getElementById('nova_qtde').value = qtde;
+        });
+    });
 });
 </script>
-
 
 <?php
 // Incluir rodapé

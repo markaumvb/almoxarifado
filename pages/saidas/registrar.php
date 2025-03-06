@@ -192,14 +192,17 @@ include_once '../../includes/header.php';
                                 <label for="codigo" class="form-label">Código do Item</label>
                                 <div class="input-group">
                                     <input type="text" class="form-control" id="codigo" name="codigo" required>
-                                    <button type="button" class="btn btn-outline-primary" id="btn-buscar-item">
+                                    <button type="button" class="btn btn-outline-secondary" id="btn-buscar-codigo">
                                         <i class="fas fa-search"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary" id="btn-abrir-pesquisa" data-bs-toggle="modal" data-bs-target="#modalBuscaItem">
+                                        <i class="fas fa-list"></i>
                                     </button>
                                 </div>
                             </div>
                             <div class="col-md-5">
                                 <label class="form-label">Nome do Item</label>
-                                <div class="form-control bg-light item-name-display" id="nome_item_display">Nenhum item selecionado</div>
+                                <div class="form-control bg-light" id="nome_item_display">Nenhum item selecionado</div>
                             </div>
                             <div class="col-md-2">
                                 <label for="qtde" class="form-label">Quantidade</label>
@@ -290,7 +293,7 @@ include_once '../../includes/header.php';
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="editItemModalLabel">Editar Quantidade</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="post">
                 <div class="modal-body">
@@ -309,38 +312,89 @@ include_once '../../includes/header.php';
     </div>
 </div>
 
+<!-- Modal para pesquisa de itens -->
+<div class="modal fade" id="modalBuscaItem" tabindex="-1" aria-labelledby="modalBuscaItemLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalBuscaItemLabel">Pesquisa de Itens</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="search_term" class="form-label">Digite o nome do item</label>
+                    <input type="text" class="form-control" id="search_term" placeholder="Digite para pesquisar...">
+                </div>
+                
+                <div class="table-responsive mt-3">
+                    <table class="table table-bordered table-hover" id="search_results_table">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Nome</th>
+                                <th>Tipo</th>
+                                <th>Saldo</th>
+                                <th>Unidade</th>
+                            </tr>
+                        </thead>
+                        <tbody id="search_results">
+                            <tr>
+                                <td colspan="5" class="text-center">Digite algo para pesquisar</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-selecionar-item" disabled>Selecionar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Elementos do DOM
+    // Elementos do formulário
     const codigoInput = document.getElementById('codigo');
     const nomeItemDisplay = document.getElementById('nome_item_display');
-    const btnBuscarItem = document.getElementById('btn-buscar-item');
+    const btnBuscarCodigo = document.getElementById('btn-buscar-codigo');
+    const searchTermInput = document.getElementById('search_term');
+    const searchResults = document.getElementById('search_results');
+    const btnSelecionarItem = document.getElementById('btn-selecionar-item');
     
-    // Função para buscar item pelo código
-    function buscarItem() {
+    // Variável para armazenar o item selecionado na pesquisa
+    let selectedItemFromSearch = null;
+    
+    // Função para buscar item por código
+    function buscarItemPorCodigo() {
         const codigo = codigoInput.value.trim();
         
-        if (codigo.length > 0) {
+        if (codigo) {
+            // Mostrar "Buscando..." enquanto procura
             nomeItemDisplay.textContent = "Buscando...";
-            nomeItemDisplay.style.color = "blue";
+            nomeItemDisplay.style.color = '#666';
             
-            // Fazer requisição AJAX
-            var xhr = new XMLHttpRequest();
+            // Fazer requisição AJAX para buscar o item pelo código
+            const xhr = new XMLHttpRequest();
             xhr.open('GET', '../../api/itens.php?codigo=' + encodeURIComponent(codigo), true);
             
             xhr.onload = function() {
                 if (xhr.status === 200) {
                     try {
-                        var data = JSON.parse(xhr.responseText);
-                        if (data && data.length > 0) {
-                            nomeItemDisplay.textContent = data[0].NOME;
+                        const response = JSON.parse(xhr.responseText);
+                        
+                        if (response && response.length > 0) {
+                            // Item encontrado, exibir o nome
+                            nomeItemDisplay.textContent = response[0].NOME;
                             nomeItemDisplay.style.color = 'black';
                         } else {
+                            // Item não encontrado
                             nomeItemDisplay.textContent = 'Item não encontrado';
                             nomeItemDisplay.style.color = 'red';
                         }
-                    } catch (e) {
-                        console.error('Erro ao processar resposta:', e);
+                    } catch (error) {
+                        console.error('Erro ao processar resposta:', error);
                         nomeItemDisplay.textContent = 'Erro ao processar dados';
                         nomeItemDisplay.style.color = 'red';
                     }
@@ -351,7 +405,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             
             xhr.onerror = function() {
-                nomeItemDisplay.textContent = 'Erro na conexão';
+                nomeItemDisplay.textContent = 'Erro de conexão';
                 nomeItemDisplay.style.color = 'red';
             };
             
@@ -362,17 +416,126 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Adicionar evento ao botão de busca
-    if (btnBuscarItem) {
-        btnBuscarItem.addEventListener('click', buscarItem);
+    // Função para pesquisar itens por nome
+    function pesquisarItensPorNome() {
+        const searchTerm = searchTermInput.value.trim();
+        
+        if (searchTerm.length < 2) {
+            searchResults.innerHTML = '<tr><td colspan="5" class="text-center">Digite no mínimo 2 caracteres para pesquisar</td></tr>';
+            return;
+        }
+        
+        // Fazer requisição AJAX para buscar itens pelo nome
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '../../api/itens.php?search=' + encodeURIComponent(searchTerm), true);
+        
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    
+                    if (response && response.length > 0) {
+                        // Limitar a 15 resultados
+                        const itens = response.slice(0, 15);
+                        let html = '';
+                        
+                        itens.forEach(function(item) {
+                            const tipoText = item.TIPO === 'P' ? 'Permanente' : (item.TIPO === 'C' ? 'Consumo' : item.TIPO);
+                            html += `
+                                <tr class="search-result-row" data-codigo="${item.CODIGO}" data-nome="${item.NOME}">
+                                    <td>${item.CODIGO}</td>
+                                    <td>${item.NOME}</td>
+                                    <td>${tipoText}</td>
+                                    <td>${parseFloat(item.SALDO).toFixed(2)}</td>
+                                    <td>${item.unidade_nome || ''}</td>
+                                </tr>
+                            `;
+                        });
+                        
+                        searchResults.innerHTML = html;
+                        
+                        // Adicionar evento de clique nas linhas da tabela
+                        const rows = document.querySelectorAll('.search-result-row');
+                        rows.forEach(function(row) {
+                            row.addEventListener('click', function() {
+                                // Remover seleção de todas as linhas
+                                rows.forEach(r => r.classList.remove('table-primary'));
+                                
+                                // Adicionar seleção à linha clicada
+                                this.classList.add('table-primary');
+                                
+                                // Armazenar o item selecionado
+                                selectedItemFromSearch = {
+                                    codigo: this.getAttribute('data-codigo'),
+                                    nome: this.getAttribute('data-nome')
+                                };
+                                
+                                // Habilitar o botão de seleção
+                                btnSelecionarItem.removeAttribute('disabled');
+                            });
+                        });
+                    } else {
+                        searchResults.innerHTML = '<tr><td colspan="5" class="text-center">Nenhum item encontrado</td></tr>';
+                        btnSelecionarItem.setAttribute('disabled', 'disabled');
+                    }
+                } catch (error) {
+                    console.error('Erro ao processar resposta:', error);
+                    searchResults.innerHTML = '<tr><td colspan="5" class="text-center">Erro ao processar dados</td></tr>';
+                }
+            } else {
+                searchResults.innerHTML = '<tr><td colspan="5" class="text-center">Erro na requisição</td></tr>';
+            }
+        };
+        
+        xhr.onerror = function() {
+            searchResults.innerHTML = '<tr><td colspan="5" class="text-center">Erro de conexão</td></tr>';
+        };
+        
+        xhr.send();
     }
     
-    // Adicionar evento de tecla Enter no campo de código
+    // Adicionar evento ao botão de busca por código
+    if (btnBuscarCodigo) {
+        btnBuscarCodigo.addEventListener('click', buscarItemPorCodigo);
+    }
+    
+    // Adicionar evento ao pressionar Enter no campo de código
     if (codigoInput) {
         codigoInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                e.preventDefault(); // Prevenir o envio do formulário
-                buscarItem();
+                e.preventDefault(); // Evitar submissão do formulário
+                buscarItemPorCodigo();
+            }
+        });
+    }
+    
+    // Adicionar evento ao campo de pesquisa
+    if (searchTermInput) {
+        // Debounce para evitar muitas requisições enquanto o usuário digita
+        let debounceTimer;
+        searchTermInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(pesquisarItensPorNome, 300);
+        });
+    }
+    
+    // Adicionar evento ao botão de selecionar item
+    if (btnSelecionarItem) {
+        btnSelecionarItem.addEventListener('click', function() {
+            if (selectedItemFromSearch) {
+                // Preencher o campo de código
+                codigoInput.value = selectedItemFromSearch.codigo;
+                
+                // Exibir o nome do item
+                nomeItemDisplay.textContent = selectedItemFromSearch.nome;
+                nomeItemDisplay.style.color = 'black';
+                
+                // Fechar o modal
+                const modalBuscaItem = bootstrap.Modal.getInstance(document.getElementById('modalBuscaItem'));
+                modalBuscaItem.hide();
+                
+                // Focar no campo de quantidade
+                document.getElementById('qtde').focus();
             }
         });
     }
@@ -389,6 +552,11 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('nova_qtde').value = qtde;
         });
     });
+    
+    // Verificar código ao carregar a página
+    if (codigoInput.value.trim()) {
+        buscarItemPorCodigo();
+    }
 });
 </script>
 

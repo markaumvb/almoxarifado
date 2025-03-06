@@ -33,26 +33,53 @@ class Item {
         }
     }
 
-    // Obter item por código
-    // Em classes/Item.php
-public function getItemByCodigo($codigo) {
-    try {
-        // Log para depuração
-        error_log('Método getItemByCodigo chamado com código: ' . $codigo);
-        
-        $this->db->query('SELECT * FROM ITENS WHERE CODIGO = :codigo');
-        $this->db->bind(':codigo', $codigo);
-        $result = $this->db->single();
-        
-        // Log do resultado
-        error_log('Resultado da consulta: ' . ($result ? 'Item encontrado' : 'Nenhum item encontrado'));
-        
-        return $result;
-    } catch (PDOException $e) {
-        error_log('Erro ao buscar item por código: ' . $e->getMessage());
-        return false;
+    public function getItemByCodigo($codigo) {
+        try {
+            $this->db->query('SELECT * FROM ITENS WHERE CODIGO = :codigo');
+            $this->db->bind(':codigo', $codigo);
+            return $this->db->single();
+        } catch (PDOException $e) {
+            error_log('Erro ao buscar item por código: ' . $e->getMessage());
+            return false;
+        }
     }
-}
+    
+    // Buscar itens por texto (nome ou código)
+    public function searchItems($search) {
+        try {
+            $this->db->query('SELECT i.*, u.NOME as unidade_nome 
+                             FROM ITENS i 
+                             LEFT JOIN UNIDADE_MEDIDA u ON i.ID_UNIDADE = u.ID
+                             WHERE i.NOME LIKE :search 
+                             OR i.CODIGO LIKE :search
+                             ORDER BY i.NOME
+                             LIMIT 15');
+            
+            $searchPattern = '%' . $search . '%';
+            $this->db->bind(':search', $searchPattern);
+            
+            return $this->db->resultSet();
+        } catch (PDOException $e) {
+            error_log('Erro ao pesquisar itens: ' . $e->getMessage());
+            return [];
+        }
+    }
+    
+    // Verificar se há saldo suficiente
+    public function checkSaldo($codigo, $quantidade) {
+        try {
+            $item = $this->getItemByCodigo($codigo);
+            
+            if (!$item) {
+                return false;
+            }
+            
+            return $item['SALDO'] >= $quantidade;
+        } catch (PDOException $e) {
+            error_log('Erro ao verificar saldo: ' . $e->getMessage());
+            return false;
+        }
+    }
 
     // Adicionar item
     public function add($data) {
@@ -143,36 +170,5 @@ public function getItemByCodigo($codigo) {
             return false;
         }
     }
-
-    // Verificar se há saldo suficiente
-    public function checkSaldo($codigo, $qtde) {
-        $item = $this->getItemByCodigo($codigo);
-        
-        if(!$item) {
-            return false;
-        }
-        
-        return $item['SALDO'] >= $qtde;
-    }
-
-    // Pesquisar itens
-    public function searchItems($search) {
-    try {
-        $this->db->query('SELECT i.*, u.NOME as unidade_nome 
-                          FROM ITENS i 
-                          LEFT JOIN UNIDADE_MEDIDA u ON i.ID_UNIDADE = u.ID
-                          WHERE i.CODIGO LIKE :search 
-                          OR i.NOME LIKE :search
-                          ORDER BY i.NOME');
-        
-        $searchPattern = '%' . $search . '%';
-        $this->db->bind(':search', $searchPattern);
-        
-        return $this->db->resultSet();
-    } catch (PDOException $e) {
-        error_log('Erro ao pesquisar itens: ' . $e->getMessage());
-        return [];
-    }
-}
 
 }

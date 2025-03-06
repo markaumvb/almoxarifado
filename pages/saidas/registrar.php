@@ -195,6 +195,7 @@ include_once '../../includes/header.php';
                             <div class="col-md-5">
                                 <label class="form-label">Nome do Item</label>
                                 <div class="form-control bg-light" id="nome_item_display">Nenhum item selecionado</div>
+                                <input type="hidden" id="nome_item" name="nome_item">
                             </div>
                             <div class="col-md-2">
                                 <label for="qtde" class="form-label">Quantidade</label>
@@ -304,6 +305,8 @@ include_once '../../includes/header.php';
     </div>
 </div>
 
+<!-- Modal e outros elementos HTML... -->
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Busca de item pelo código
@@ -350,6 +353,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
 
 <?php
 // Incluir rodapé

@@ -313,13 +313,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const codigoInput = document.getElementById('codigo');
     const nomeItemDisplay = document.getElementById('nome_item_display');
     
+    // Adicione este log para verificar se o JavaScript está sendo executado
+    console.log('JavaScript para busca de itens inicializado');
+    
+    // Log para garantir que os elementos foram encontrados
+    console.log('Elemento código:', codigoInput);
+    console.log('Elemento nome display:', nomeItemDisplay);
+    
     codigoInput.addEventListener('input', function() {
         const codigo = this.value.trim();
+        console.log('Código digitado:', codigo); // Log para depuração
+        
         if (codigo) {
+            // URL da API clara para facilitar a depuração
+            const apiUrl = '../../api/itens.php?codigo=' + encodeURIComponent(codigo);
+            console.log('Consultando API:', apiUrl);
+            
             // Fazer requisição AJAX para buscar o nome do item pelo código
-            fetch('../../api/itens.php?codigo=' + encodeURIComponent(codigo))
-                .then(response => response.json())
+            fetch(apiUrl)
+                .then(response => {
+                    console.log('Resposta da API:', response);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('Dados recebidos:', data);
                     if (data && data.length > 0) {
                         nomeItemDisplay.textContent = data[0].NOME;
                         nomeItemDisplay.style.color = 'black';
@@ -339,18 +356,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Script para preencher o modal de edição
-    const editButtons = document.querySelectorAll('.edit-item');
-    
-    editButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const id = this.getAttribute('data-id');
-            const qtde = this.getAttribute('data-qtde');
-            
-            document.getElementById('edit_temp_id').value = id;
-            document.getElementById('nova_qtde').value = qtde;
-        });
-    });
+    // Resto do código...
 });
 </script>
 

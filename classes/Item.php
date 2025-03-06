@@ -34,16 +34,25 @@ class Item {
     }
 
     // Obter item por código
-    public function getItemByCodigo($codigo) {
-        try {
-            $this->db->query('SELECT * FROM ITENS WHERE CODIGO = :codigo');
-            $this->db->bind(':codigo', $codigo);
-            return $this->db->single();
-        } catch (PDOException $e) {
-            error_log('Erro ao buscar item por código: ' . $e->getMessage());
-            return false;
-        }
+    // Em classes/Item.php
+public function getItemByCodigo($codigo) {
+    try {
+        // Log para depuração
+        error_log('Método getItemByCodigo chamado com código: ' . $codigo);
+        
+        $this->db->query('SELECT * FROM ITENS WHERE CODIGO = :codigo');
+        $this->db->bind(':codigo', $codigo);
+        $result = $this->db->single();
+        
+        // Log do resultado
+        error_log('Resultado da consulta: ' . ($result ? 'Item encontrado' : 'Nenhum item encontrado'));
+        
+        return $result;
+    } catch (PDOException $e) {
+        error_log('Erro ao buscar item por código: ' . $e->getMessage());
+        return false;
     }
+}
 
     // Adicionar item
     public function add($data) {

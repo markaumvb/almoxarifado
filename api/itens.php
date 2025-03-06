@@ -1,9 +1,13 @@
 <?php
+// api/itens.php
 
+// Definir o caminho manualmente em vez de usar constantes
+$rootPath = dirname(dirname(__FILE__)) . '/';
 
-require_once ROOT_PATH . 'config/config.php';
-require_once ROOT_PATH . 'classes/Item.php';
-require_once ROOT_PATH . 'includes/auth.php';
+// Incluir os arquivos de configuração usando caminhos relativos
+require_once $rootPath . 'config/config.php';
+require_once $rootPath . 'classes/Item.php';
+require_once $rootPath . 'includes/auth.php';
 
 // Verificar se o usuário está logado
 if(!isLoggedIn()) {

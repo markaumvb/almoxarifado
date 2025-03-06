@@ -34,27 +34,23 @@ if (isset($_POST['add_item'])) {
         if (!$itemData) {
             setFlashMessage('error', 'Item não encontrado');
         } else {
-            // Verificar se há estoque suficiente
-            if (!$item->checkSaldo($codigo, $qtde)) {
-                setFlashMessage('error', 'Estoque insuficiente. Disponível: ' . $itemData['SALDO']);
-            } else {
-                // Adicionar à lista temporária
-                $temp_item = [
-                    'id' => uniqid(), // ID temporário para identificar o item na sessão
-                    'codigo' => $codigo,
-                    'nome' => $itemData['NOME'],
-                    'qtde' => $qtde,
-                    'unidade' => $itemData['ID_UNIDADE']
-                ];
-                
-                $_SESSION['temp_saida_items'][] = $temp_item;
-                setFlashMessage('success', 'Item adicionado à lista');
-            }
+            // Adicionar à lista temporária sem verificar saldo
+            $temp_item = [
+                'id' => uniqid(), // ID temporário para identificar o item na sessão
+                'codigo' => $codigo,
+                'nome' => $itemData['NOME'],
+                'qtde' => $qtde,
+                'unidade' => $itemData['ID_UNIDADE']
+            ];
+            
+            $_SESSION['temp_saida_items'][] = $temp_item;
+            setFlashMessage('success', 'Item adicionado à lista');
         }
     }
     
     // Redirecionar para evitar reenvio do formulário
-    redirect('saidas/registrar.php');
+    header('Location: registrar.php');
+    exit;
 }
 
 // Remover item da lista temporária
@@ -71,7 +67,8 @@ if (isset($_GET['remove']) && !empty($_GET['remove'])) {
     }
     
     // Redirecionar para evitar reenvio
-    redirect('saidas/registrar.php');
+    header('Location: registrar.php');
+    exit;
 }
 
 // Editar quantidade de item na lista temporária
@@ -86,17 +83,10 @@ if (isset($_POST['edit_item'])) {
         
         foreach ($_SESSION['temp_saida_items'] as $key => $item_data) {
             if ($item_data['id'] == $temp_id) {
-                // Verificar se há estoque suficiente
-                $itemData = $item->getItemByCodigo($item_data['codigo']);
-                
-                if (!$item->checkSaldo($item_data['codigo'], $nova_qtde)) {
-                    setFlashMessage('error', 'Estoque insuficiente. Disponível: ' . $itemData['SALDO']);
-                } else {
-                    $_SESSION['temp_saida_items'][$key]['qtde'] = $nova_qtde;
-                    setFlashMessage('success', 'Quantidade atualizada');
-                    $edited = true;
-                }
-                
+                // Atualizar quantidade sem verificar estoque
+                $_SESSION['temp_saida_items'][$key]['qtde'] = $nova_qtde;
+                setFlashMessage('success', 'Quantidade atualizada');
+                $edited = true;
                 break;
             }
         }
@@ -107,7 +97,8 @@ if (isset($_POST['edit_item'])) {
     }
     
     // Redirecionar para evitar reenvio
-    redirect('saidas/registrar.php');
+    header('Location: registrar.php');
+    exit;
 }
 
 // Finalizar saída (salvar todos os itens)
@@ -160,7 +151,8 @@ if (isset($_POST['finalizar_saida'])) {
     }
     
     // Redirecionar para evitar reenvio
-    redirect('saidas/registrar.php');
+    header('Location: registrar.php');
+    exit;
 }
 
 // Flash message
@@ -186,7 +178,7 @@ include_once '../../includes/header.php';
                     <?php endif; ?>
                     
                     <!-- Formulário para adicionar item -->
-                    <form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="post">
+                    <form action="registrar.php" method="post">
                         <div class="row mb-4">
                             <div class="col-md-3">
                                 <label for="codigo" class="form-label">Código do Item</label>
@@ -216,7 +208,32 @@ include_once '../../includes/header.php';
                         </div>
                     </form>
                     
-                    <!-- Lista de itens temporários -->
+                    <!-- Formulário para finalizar saída -->
+                    <form action="registrar.php" method="post" class="mt-4">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="id_servidor" class="form-label">Servidor Responsável</label>
+                                <select class="form-select" id="id_servidor" name="id_servidor" required>
+                                    <option value="">Selecione um servidor</option>
+                                    <?php foreach($servidores as $srv): ?>
+                                        <option value="<?php echo $srv['ID']; ?>"><?php echo $srv['NOME']; ?> (<?php echo $srv['MATRICULA']; ?>)</option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="obs" class="form-label">Observações</label>
+                                <input type="text" class="form-control" id="obs" name="obs">
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3 mb-4">
+                            <a href="../dashboard.php" class="btn btn-secondary">Cancelar</a>
+                            <button type="submit" name="finalizar_saida" class="btn btn-success" <?php echo empty($_SESSION['temp_saida_items']) ? 'disabled' : ''; ?>>
+                                <i class="fas fa-save me-2"></i> Finalizar Saída
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <!-- Lista de itens temporários - Movida para o final -->
                     <div class="table-responsive mt-4">
                         <h6 class="mb-3 font-weight-bold">Itens a Serem Retirados</h6>
                         <table class="table table-bordered">
@@ -256,31 +273,6 @@ include_once '../../includes/header.php';
                             </tbody>
                         </table>
                     </div>
-                    
-                    <!-- Formulário para finalizar saída -->
-                    <form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="post" class="mt-4">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="id_servidor" class="form-label">Servidor Responsável</label>
-                                <select class="form-select" id="id_servidor" name="id_servidor" required>
-                                    <option value="">Selecione um servidor</option>
-                                    <?php foreach($servidores as $srv): ?>
-                                        <option value="<?php echo $srv['ID']; ?>"><?php echo $srv['NOME']; ?> (<?php echo $srv['MATRICULA']; ?>)</option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="obs" class="form-label">Observações</label>
-                                <input type="text" class="form-control" id="obs" name="obs">
-                            </div>
-                        </div>
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
-                            <a href="../dashboard.php" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" name="finalizar_saida" class="btn btn-success" <?php echo empty($_SESSION['temp_saida_items']) ? 'disabled' : ''; ?>>
-                                <i class="fas fa-save me-2"></i> Finalizar Saída
-                            </button>
-                        </div>
-                    </form>
                 </div>
             </div>
         </div>
@@ -295,7 +287,7 @@ include_once '../../includes/header.php';
                 <h5 class="modal-title" id="editItemModalLabel">Editar Quantidade</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="post">
+            <form action="registrar.php" method="post">
                 <div class="modal-body">
                     <input type="hidden" name="temp_id" id="edit_temp_id">
                     <div class="mb-3">

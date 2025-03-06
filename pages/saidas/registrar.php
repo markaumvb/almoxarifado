@@ -23,10 +23,13 @@ if (!isset($_SESSION['temp_saida_items'])) {
 if (isset($_POST['add_item'])) {
     $codigo = trim($_POST['codigo']);
     $qtde = intval($_POST['qtde']);
+    $id_servidor = intval($_POST['id_servidor']);
     
     // Validar dados
     if (empty($codigo) || $qtde <= 0) {
         setFlashMessage('error', 'Código e quantidade são obrigatórios');
+    } elseif (empty($id_servidor)) {
+        setFlashMessage('error', 'Selecione um servidor responsável');
     } else {
         // Verificar se o item existe
         $itemData = $item->getItemByCodigo($codigo);
@@ -34,13 +37,18 @@ if (isset($_POST['add_item'])) {
         if (!$itemData) {
             setFlashMessage('error', 'Item não encontrado');
         } else {
-            // Adicionar à lista temporária sem verificar saldo
+            // Obter dados do servidor
+            $servidorData = $servidor->getServidorById($id_servidor);
+            
+            // Adicionar à lista temporária
             $temp_item = [
                 'id' => uniqid(), // ID temporário para identificar o item na sessão
                 'codigo' => $codigo,
                 'nome' => $itemData['NOME'],
                 'qtde' => $qtde,
-                'unidade' => $itemData['ID_UNIDADE']
+                'unidade' => $itemData['ID_UNIDADE'],
+                'id_servidor' => $id_servidor,
+                'servidor_nome' => $servidorData ? $servidorData['NOME'] : 'Não identificado'
             ];
             
             $_SESSION['temp_saida_items'][] = $temp_item;
@@ -83,7 +91,7 @@ if (isset($_POST['edit_item'])) {
         
         foreach ($_SESSION['temp_saida_items'] as $key => $item_data) {
             if ($item_data['id'] == $temp_id) {
-                // Atualizar quantidade sem verificar estoque
+                // Atualizar a quantidade
                 $_SESSION['temp_saida_items'][$key]['qtde'] = $nova_qtde;
                 setFlashMessage('success', 'Quantidade atualizada');
                 $edited = true;
@@ -103,13 +111,10 @@ if (isset($_POST['edit_item'])) {
 
 // Finalizar saída (salvar todos os itens)
 if (isset($_POST['finalizar_saida'])) {
-    $id_servidor = intval($_POST['id_servidor']);
     $obs = trim($_POST['obs']);
     $data = date('Y-m-d'); // Data atual
     
-    if (empty($id_servidor)) {
-        setFlashMessage('error', 'Selecione um servidor');
-    } else if (empty($_SESSION['temp_saida_items'])) {
+    if (empty($_SESSION['temp_saida_items'])) {
         setFlashMessage('error', 'Adicione pelo menos um item à lista');
     } else {
         $success = true;
@@ -124,7 +129,7 @@ if (isset($_POST['finalizar_saida'])) {
                 $saida_data = [
                     'codigo' => $item_data['codigo'],
                     'qtde' => $item_data['qtde'],
-                    'id_servidor' => $id_servidor,
+                    'id_servidor' => $item_data['id_servidor'],
                     'data' => $data,
                     'obs' => $obs
                 ];
@@ -177,8 +182,25 @@ include_once '../../includes/header.php';
                         </div>
                     <?php endif; ?>
                     
-                    <!-- Formulário para adicionar item -->
-                    <form action="registrar.php" method="post">
+                    <!-- 1. Servidor Responsável (primeiro) -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="id_servidor" class="form-label">Servidor Responsável <span class="text-danger">*</span></label>
+                            <select class="form-select" id="id_servidor" name="id_servidor" required>
+                                <option value="">Selecione um servidor</option>
+                                <?php foreach($servidores as $srv): ?>
+                                    <option value="<?php echo $srv['ID']; ?>"><?php echo $srv['NOME']; ?> (<?php echo $srv['MATRICULA']; ?>)</option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="obs" class="form-label">Observações</label>
+                            <input type="text" class="form-control" id="obs" name="obs">
+                        </div>
+                    </div>
+                    
+                    <!-- 2. Formulário para adicionar item -->
+                    <form action="registrar.php" method="post" id="form-adicao">
                         <div class="row mb-4">
                             <div class="col-md-3">
                                 <label for="codigo" class="form-label">Código do Item</label>
@@ -201,6 +223,8 @@ include_once '../../includes/header.php';
                                 <input type="number" class="form-control" id="qtde" name="qtde" min="1" step="1" value="1" required>
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
+                                <!-- Incluir o id_servidor no formulário de adição -->
+                                <input type="hidden" name="id_servidor" id="hidden_id_servidor">
                                 <button type="submit" name="add_item" class="btn btn-primary w-100">
                                     <i class="fas fa-plus-circle me-2"></i> Adicionar
                                 </button>
@@ -208,32 +232,7 @@ include_once '../../includes/header.php';
                         </div>
                     </form>
                     
-                    <!-- Formulário para finalizar saída -->
-                    <form action="registrar.php" method="post" class="mt-4">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="id_servidor" class="form-label">Servidor Responsável</label>
-                                <select class="form-select" id="id_servidor" name="id_servidor" required>
-                                    <option value="">Selecione um servidor</option>
-                                    <?php foreach($servidores as $srv): ?>
-                                        <option value="<?php echo $srv['ID']; ?>"><?php echo $srv['NOME']; ?> (<?php echo $srv['MATRICULA']; ?>)</option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="obs" class="form-label">Observações</label>
-                                <input type="text" class="form-control" id="obs" name="obs">
-                            </div>
-                        </div>
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3 mb-4">
-                            <a href="../dashboard.php" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" name="finalizar_saida" class="btn btn-success" <?php echo empty($_SESSION['temp_saida_items']) ? 'disabled' : ''; ?>>
-                                <i class="fas fa-save me-2"></i> Finalizar Saída
-                            </button>
-                        </div>
-                    </form>
-                    
-                    <!-- Lista de itens temporários - Movida para o final -->
+                    <!-- 3. Lista de itens temporários -->
                     <div class="table-responsive mt-4">
                         <h6 class="mb-3 font-weight-bold">Itens a Serem Retirados</h6>
                         <table class="table table-bordered">
@@ -242,20 +241,22 @@ include_once '../../includes/header.php';
                                     <th>Código</th>
                                     <th>Item</th>
                                     <th>Quantidade</th>
+                                    <th>Servidor</th>
                                     <th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if(empty($_SESSION['temp_saida_items'])): ?>
                                     <tr>
-                                        <td colspan="4" class="text-center">Nenhum item adicionado</td>
+                                        <td colspan="5" class="text-center">Nenhum item adicionado</td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach($_SESSION['temp_saida_items'] as $item_data): ?>
-                                        <tr>
+                                        <tr class="temp-item">
                                             <td><?php echo $item_data['codigo']; ?></td>
                                             <td><?php echo $item_data['nome']; ?></td>
                                             <td class="text-center"><?php echo $item_data['qtde']; ?></td>
+                                            <td><?php echo $item_data['servidor_nome']; ?></td>
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-sm btn-warning edit-item" 
                                                         data-id="<?php echo $item_data['id']; ?>" 
@@ -273,6 +274,17 @@ include_once '../../includes/header.php';
                             </tbody>
                         </table>
                     </div>
+                    
+                    <!-- 4. Botões para finalizar (no final) -->
+                    <form action="registrar.php" method="post" class="mt-4">
+                        <input type="hidden" name="obs" id="hidden_obs">
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3 mb-4">
+                            <a href="../dashboard.php" class="btn btn-secondary">Cancelar</a>
+                            <button type="submit" name="finalizar_saida" id="btn-finalizar" class="btn btn-success" <?php echo empty($_SESSION['temp_saida_items']) ? 'disabled' : ''; ?>>
+                                <i class="fas fa-save me-2"></i> Finalizar Saída
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -345,210 +357,35 @@ include_once '../../includes/header.php';
     </div>
 </div>
 
+<!-- Incluir o arquivo JavaScript separado -->
+<script src="script.js"></script>
+
+<!-- Script inline para sincronizar campos duplicados -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Elementos do formulário
-    const codigoInput = document.getElementById('codigo');
-    const nomeItemDisplay = document.getElementById('nome_item_display');
-    const btnBuscarCodigo = document.getElementById('btn-buscar-codigo');
-    const searchTermInput = document.getElementById('search_term');
-    const searchResults = document.getElementById('search_results');
-    const btnSelecionarItem = document.getElementById('btn-selecionar-item');
+    // Sincronizar os campos de servidor e observações
+    const idServidor = document.getElementById('id_servidor');
+    const hiddenServidor = document.getElementById('hidden_id_servidor');
+    const obs = document.getElementById('obs');
+    const hiddenObs = document.getElementById('hidden_obs');
     
-    // Variável para armazenar o item selecionado na pesquisa
-    let selectedItemFromSearch = null;
-    
-    // Função para buscar item por código
-    function buscarItemPorCodigo() {
-        const codigo = codigoInput.value.trim();
-        
-        if (codigo) {
-            // Mostrar "Buscando..." enquanto procura
-            nomeItemDisplay.textContent = "Buscando...";
-            nomeItemDisplay.style.color = '#666';
-            
-            // Fazer requisição AJAX para buscar o item pelo código
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', '../../api/itens.php?codigo=' + encodeURIComponent(codigo), true);
-            
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    try {
-                        const response = JSON.parse(xhr.responseText);
-                        
-                        if (response && response.length > 0) {
-                            // Item encontrado, exibir o nome
-                            nomeItemDisplay.textContent = response[0].NOME;
-                            nomeItemDisplay.style.color = 'black';
-                        } else {
-                            // Item não encontrado
-                            nomeItemDisplay.textContent = 'Item não encontrado';
-                            nomeItemDisplay.style.color = 'red';
-                        }
-                    } catch (error) {
-                        console.error('Erro ao processar resposta:', error);
-                        nomeItemDisplay.textContent = 'Erro ao processar dados';
-                        nomeItemDisplay.style.color = 'red';
-                    }
-                } else {
-                    nomeItemDisplay.textContent = 'Erro na requisição';
-                    nomeItemDisplay.style.color = 'red';
-                }
-            };
-            
-            xhr.onerror = function() {
-                nomeItemDisplay.textContent = 'Erro de conexão';
-                nomeItemDisplay.style.color = 'red';
-            };
-            
-            xhr.send();
-        } else {
-            nomeItemDisplay.textContent = 'Nenhum item selecionado';
-            nomeItemDisplay.style.color = 'grey';
-        }
-    }
-    
-    // Função para pesquisar itens por nome
-    function pesquisarItensPorNome() {
-        const searchTerm = searchTermInput.value.trim();
-        
-        if (searchTerm.length < 2) {
-            searchResults.innerHTML = '<tr><td colspan="5" class="text-center">Digite no mínimo 2 caracteres para pesquisar</td></tr>';
-            return;
-        }
-        
-        // Fazer requisição AJAX para buscar itens pelo nome
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', '../../api/itens.php?search=' + encodeURIComponent(searchTerm), true);
-        
-        xhr.onload = function() {
-            if (xhr.status === 200) {
-                try {
-                    const response = JSON.parse(xhr.responseText);
-                    
-                    if (response && response.length > 0) {
-                        // Limitar a 15 resultados
-                        const itens = response.slice(0, 15);
-                        let html = '';
-                        
-                        itens.forEach(function(item) {
-                            const tipoText = item.TIPO === 'P' ? 'Permanente' : (item.TIPO === 'C' ? 'Consumo' : item.TIPO);
-                            html += `
-                                <tr class="search-result-row" data-codigo="${item.CODIGO}" data-nome="${item.NOME}">
-                                    <td>${item.CODIGO}</td>
-                                    <td>${item.NOME}</td>
-                                    <td>${tipoText}</td>
-                                    <td>${parseFloat(item.SALDO).toFixed(2)}</td>
-                                    <td>${item.unidade_nome || ''}</td>
-                                </tr>
-                            `;
-                        });
-                        
-                        searchResults.innerHTML = html;
-                        
-                        // Adicionar evento de clique nas linhas da tabela
-                        const rows = document.querySelectorAll('.search-result-row');
-                        rows.forEach(function(row) {
-                            row.addEventListener('click', function() {
-                                // Remover seleção de todas as linhas
-                                rows.forEach(r => r.classList.remove('table-primary'));
-                                
-                                // Adicionar seleção à linha clicada
-                                this.classList.add('table-primary');
-                                
-                                // Armazenar o item selecionado
-                                selectedItemFromSearch = {
-                                    codigo: this.getAttribute('data-codigo'),
-                                    nome: this.getAttribute('data-nome')
-                                };
-                                
-                                // Habilitar o botão de seleção
-                                btnSelecionarItem.removeAttribute('disabled');
-                            });
-                        });
-                    } else {
-                        searchResults.innerHTML = '<tr><td colspan="5" class="text-center">Nenhum item encontrado</td></tr>';
-                        btnSelecionarItem.setAttribute('disabled', 'disabled');
-                    }
-                } catch (error) {
-                    console.error('Erro ao processar resposta:', error);
-                    searchResults.innerHTML = '<tr><td colspan="5" class="text-center">Erro ao processar dados</td></tr>';
-                }
-            } else {
-                searchResults.innerHTML = '<tr><td colspan="5" class="text-center">Erro na requisição</td></tr>';
-            }
-        };
-        
-        xhr.onerror = function() {
-            searchResults.innerHTML = '<tr><td colspan="5" class="text-center">Erro de conexão</td></tr>';
-        };
-        
-        xhr.send();
-    }
-    
-    // Adicionar evento ao botão de busca por código
-    if (btnBuscarCodigo) {
-        btnBuscarCodigo.addEventListener('click', buscarItemPorCodigo);
-    }
-    
-    // Adicionar evento ao pressionar Enter no campo de código
-    if (codigoInput) {
-        codigoInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault(); // Evitar submissão do formulário
-                buscarItemPorCodigo();
-            }
+    // Atualizar campo hidden quando o servidor muda
+    if (idServidor && hiddenServidor) {
+        idServidor.addEventListener('change', function() {
+            hiddenServidor.value = this.value;
         });
     }
     
-    // Adicionar evento ao campo de pesquisa
-    if (searchTermInput) {
-        // Debounce para evitar muitas requisições enquanto o usuário digita
-        let debounceTimer;
-        searchTermInput.addEventListener('input', function() {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(pesquisarItensPorNome, 300);
+    // Atualizar campo hidden quando as observações mudam
+    if (obs && hiddenObs) {
+        obs.addEventListener('input', function() {
+            hiddenObs.value = this.value;
         });
     }
     
-    // Adicionar evento ao botão de selecionar item
-    if (btnSelecionarItem) {
-        btnSelecionarItem.addEventListener('click', function() {
-            if (selectedItemFromSearch) {
-                // Preencher o campo de código
-                codigoInput.value = selectedItemFromSearch.codigo;
-                
-                // Exibir o nome do item
-                nomeItemDisplay.textContent = selectedItemFromSearch.nome;
-                nomeItemDisplay.style.color = 'black';
-                
-                // Fechar o modal
-                const modalBuscaItem = bootstrap.Modal.getInstance(document.getElementById('modalBuscaItem'));
-                modalBuscaItem.hide();
-                
-                // Focar no campo de quantidade
-                document.getElementById('qtde').focus();
-            }
-        });
-    }
-    
-    // Script para preencher o modal de edição
-    const editButtons = document.querySelectorAll('.edit-item');
-    
-    editButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const id = this.getAttribute('data-id');
-            const qtde = this.getAttribute('data-qtde');
-            
-            document.getElementById('edit_temp_id').value = id;
-            document.getElementById('nova_qtde').value = qtde;
-        });
-    });
-    
-    // Verificar código ao carregar a página
-    if (codigoInput.value.trim()) {
-        buscarItemPorCodigo();
-    }
+    // Inicializar os valores
+    if (idServidor) hiddenServidor.value = idServidor.value;
+    if (obs) hiddenObs.value = obs.value;
 });
 </script>
 

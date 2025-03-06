@@ -12,7 +12,7 @@ $servidor = new Servidor();
 $saida = new Saida();
 
 // Obter todos os servidores para o select
-$servidores = $servidor->getServidores();
+$servidores = $servidor->getServidoresAtivos();
 
 // Inicializar variáveis da sessão para itens temporários
 if (!isset($_SESSION['temp_saida_items'])) {
@@ -22,20 +22,21 @@ if (!isset($_SESSION['temp_saida_items'])) {
 // Adicionar item à lista temporária
 if (isset($_POST['add_item'])) {
     $codigo = trim($_POST['codigo']);
-    $qtde = intval($_POST['qtde']);
+    $qtde = floatval($_POST['qtde']);
     $id_servidor = intval($_POST['id_servidor']);
+    $observacao = isset($_POST['observacao']) ? trim($_POST['observacao']) : '';
     
     // Validar dados
     if (empty($codigo) || $qtde <= 0) {
-        setFlashMessage('error', 'Código e quantidade são obrigatórios');
+        setMessage('Código e quantidade são obrigatórios', 'danger');
     } elseif (empty($id_servidor)) {
-        setFlashMessage('error', 'Selecione um servidor responsável');
+        setMessage('Selecione um servidor responsável', 'danger');
     } else {
         // Verificar se o item existe
         $itemData = $item->getItemByCodigo($codigo);
         
         if (!$itemData) {
-            setFlashMessage('error', 'Item não encontrado');
+            setMessage('Item não encontrado', 'danger');
         } else {
             // Obter dados do servidor
             $servidorData = $servidor->getServidorById($id_servidor);
@@ -46,13 +47,14 @@ if (isset($_POST['add_item'])) {
                 'codigo' => $codigo,
                 'nome' => $itemData['NOME'],
                 'qtde' => $qtde,
-                'unidade' => $itemData['ID_UNIDADE'],
+                'unidade' => isset($itemData['ID_UNIDADE']) ? $itemData['ID_UNIDADE'] : null,
                 'id_servidor' => $id_servidor,
-                'servidor_nome' => $servidorData ? $servidorData['NOME'] : 'Não identificado'
+                'servidor_nome' => $servidorData ? $servidorData['NOME'] : 'Não identificado',
+                'observacao' => $observacao
             ];
             
             $_SESSION['temp_saida_items'][] = $temp_item;
-            setFlashMessage('success', 'Item adicionado à lista');
+            setMessage('Item adicionado à lista', 'success');
         }
     }
     
@@ -69,7 +71,7 @@ if (isset($_GET['remove']) && !empty($_GET['remove'])) {
         if ($item_data['id'] == $temp_id) {
             unset($_SESSION['temp_saida_items'][$key]);
             $_SESSION['temp_saida_items'] = array_values($_SESSION['temp_saida_items']); // Reindexar o array
-            setFlashMessage('success', 'Item removido da lista');
+            setMessage('Item removido da lista', 'success');
             break;
         }
     }
@@ -82,10 +84,10 @@ if (isset($_GET['remove']) && !empty($_GET['remove'])) {
 // Editar quantidade de item na lista temporária
 if (isset($_POST['edit_item'])) {
     $temp_id = $_POST['temp_id'];
-    $nova_qtde = intval($_POST['nova_qtde']);
+    $nova_qtde = floatval($_POST['nova_qtde']);
     
     if ($nova_qtde <= 0) {
-        setFlashMessage('error', 'A quantidade deve ser maior que zero');
+        setMessage('A quantidade deve ser maior que zero', 'danger');
     } else {
         $edited = false;
         
@@ -93,14 +95,14 @@ if (isset($_POST['edit_item'])) {
             if ($item_data['id'] == $temp_id) {
                 // Atualizar a quantidade
                 $_SESSION['temp_saida_items'][$key]['qtde'] = $nova_qtde;
-                setFlashMessage('success', 'Quantidade atualizada');
+                setMessage('Quantidade atualizada', 'success');
                 $edited = true;
                 break;
             }
         }
         
         if (!$edited) {
-            setFlashMessage('error', 'Item não encontrado na lista');
+            setMessage('Item não encontrado na lista', 'danger');
         }
     }
     
@@ -111,19 +113,20 @@ if (isset($_POST['edit_item'])) {
 
 // Finalizar saída (salvar todos os itens)
 if (isset($_POST['finalizar_saida'])) {
-    $obs = trim($_POST['obs']);
+    $observacao = isset($_POST['obs']) ? trim($_POST['obs']) : '';
     $data = date('Y-m-d'); // Data atual
     
     if (empty($_SESSION['temp_saida_items'])) {
-        setFlashMessage('error', 'Adicione pelo menos um item à lista');
+        setMessage('Adicione pelo menos um item à lista', 'danger');
     } else {
         $success = true;
+        $saidas_registradas = 0;
         
         // Iniciar transação
-        $db = new Database();
-        $db->beginTransaction();
-        
         try {
+            $db = new Database();
+            $db->beginTransaction();
+            
             // Registrar cada item
             foreach ($_SESSION['temp_saida_items'] as $item_data) {
                 $saida_data = [
@@ -131,10 +134,13 @@ if (isset($_POST['finalizar_saida'])) {
                     'qtde' => $item_data['qtde'],
                     'id_servidor' => $item_data['id_servidor'],
                     'data' => $data,
-                    'obs' => $obs
+                    'obs' => !empty($item_data['observacao']) ? $item_data['observacao'] : $observacao
                 ];
                 
-                if (!$saida->add($saida_data)) {
+                $result = $saida->add($saida_data);
+                if ($result) {
+                    $saidas_registradas++;
+                } else {
                     $success = false;
                     break;
                 }
@@ -144,14 +150,17 @@ if (isset($_POST['finalizar_saida'])) {
                 $db->commit();
                 // Limpar itens temporários
                 $_SESSION['temp_saida_items'] = [];
-                setFlashMessage('success', 'Saída registrada com sucesso');
+                setMessage("Saída finalizada com sucesso! {$saidas_registradas} item(ns) registrado(s).", 'success');
             } else {
                 $db->rollBack();
-                setFlashMessage('error', 'Erro ao registrar saída');
+                setMessage('Erro ao registrar saída. Verifique se há saldo suficiente para todos os itens.', 'danger');
             }
         } catch (Exception $e) {
-            $db->rollBack();
-            setFlashMessage('error', 'Erro ao processar saída: ' . $e->getMessage());
+            if (isset($db) && $db->inTransaction()) {
+                $db->rollBack();
+            }
+            setMessage('Erro ao processar saída: ' . $e->getMessage(), 'danger');
+            error_log('Erro na saída: ' . $e->getMessage());
         }
     }
     
@@ -159,9 +168,6 @@ if (isset($_POST['finalizar_saida'])) {
     header('Location: registrar.php');
     exit;
 }
-
-// Flash message
-$flash = getFlashMessage();
 
 // Incluir cabeçalho
 include_once '../../includes/header.php';
@@ -175,12 +181,7 @@ include_once '../../includes/header.php';
                     <h6 class="m-0 font-weight-bold text-primary">Registrar Saída de Itens</h6>
                 </div>
                 <div class="card-body">
-                    <?php if(isset($flash)): ?>
-                        <div class="alert alert-<?php echo ($flash['type'] == 'error') ? 'danger' : $flash['type']; ?> alert-dismissible fade show">
-                            <?php echo $flash['message']; ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-                        </div>
-                    <?php endif; ?>
+                    <?php displayMessage(); ?>
                     
                     <!-- 1. Servidor Responsável (primeiro) -->
                     <div class="row mb-4">
@@ -220,11 +221,12 @@ include_once '../../includes/header.php';
                             </div>
                             <div class="col-md-2">
                                 <label for="qtde" class="form-label">Quantidade</label>
-                                <input type="number" class="form-control" id="qtde" name="qtde" min="1" step="1" value="1" required>
+                                <input type="number" class="form-control" id="qtde" name="qtde" min="0.01" step="0.01" value="1" required>
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
                                 <!-- Incluir o id_servidor no formulário de adição -->
                                 <input type="hidden" name="id_servidor" id="hidden_id_servidor">
+                                <input type="hidden" name="observacao" id="hidden_obs">
                                 <button type="submit" name="add_item" class="btn btn-primary w-100">
                                     <i class="fas fa-plus-circle me-2"></i> Adicionar
                                 </button>
@@ -242,21 +244,23 @@ include_once '../../includes/header.php';
                                     <th>Item</th>
                                     <th>Quantidade</th>
                                     <th>Servidor</th>
+                                    <th>Observação</th>
                                     <th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if(empty($_SESSION['temp_saida_items'])): ?>
                                     <tr>
-                                        <td colspan="5" class="text-center">Nenhum item adicionado</td>
+                                        <td colspan="6" class="text-center">Nenhum item adicionado</td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach($_SESSION['temp_saida_items'] as $item_data): ?>
                                         <tr class="temp-item">
                                             <td><?php echo $item_data['codigo']; ?></td>
                                             <td><?php echo $item_data['nome']; ?></td>
-                                            <td class="text-center"><?php echo $item_data['qtde']; ?></td>
+                                            <td class="text-center"><?php echo number_format($item_data['qtde'], 2, ',', '.'); ?></td>
                                             <td><?php echo $item_data['servidor_nome']; ?></td>
+                                            <td><?php echo isset($item_data['observacao']) ? $item_data['observacao'] : ''; ?></td>
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-sm btn-warning edit-item" 
                                                         data-id="<?php echo $item_data['id']; ?>" 
@@ -277,7 +281,7 @@ include_once '../../includes/header.php';
                     
                     <!-- 4. Botões para finalizar (no final) -->
                     <form action="registrar.php" method="post" class="mt-4">
-                        <input type="hidden" name="obs" id="hidden_obs">
+                        <input type="hidden" name="obs" id="hidden_obs_final" value="">
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3 mb-4">
                             <a href="../dashboard.php" class="btn btn-secondary">Cancelar</a>
                             <button type="submit" name="finalizar_saida" id="btn-finalizar" class="btn btn-success" <?php echo empty($_SESSION['temp_saida_items']) ? 'disabled' : ''; ?>>
@@ -304,7 +308,7 @@ include_once '../../includes/header.php';
                     <input type="hidden" name="temp_id" id="edit_temp_id">
                     <div class="mb-3">
                         <label for="nova_qtde" class="form-label">Nova Quantidade</label>
-                        <input type="number" class="form-control" id="nova_qtde" name="nova_qtde" step="1" min="1" required>
+                        <input type="number" class="form-control" id="nova_qtde" name="nova_qtde" step="0.01" min="0.01" required>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -357,10 +361,6 @@ include_once '../../includes/header.php';
     </div>
 </div>
 
-<!-- Incluir o arquivo JavaScript separado -->
-<script src="script.js"></script>
-
-<!-- Script inline para sincronizar campos duplicados -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Sincronizar os campos de servidor e observações
@@ -368,6 +368,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const hiddenServidor = document.getElementById('hidden_id_servidor');
     const obs = document.getElementById('obs');
     const hiddenObs = document.getElementById('hidden_obs');
+    const hiddenObsFinal = document.getElementById('hidden_obs_final');
     
     // Atualizar campo hidden quando o servidor muda
     if (idServidor && hiddenServidor) {
@@ -376,18 +377,44 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Atualizar campo hidden quando as observações mudam
+    // Atualizar campos hidden quando as observações mudam
     if (obs && hiddenObs) {
         obs.addEventListener('input', function() {
             hiddenObs.value = this.value;
+            if (hiddenObsFinal) {
+                hiddenObsFinal.value = this.value;
+            }
         });
     }
     
     // Inicializar os valores
-    if (idServidor) hiddenServidor.value = idServidor.value;
-    if (obs) hiddenObs.value = obs.value;
+    if (idServidor && hiddenServidor) {
+        hiddenServidor.value = idServidor.value;
+    }
+    if (obs && hiddenObs) {
+        hiddenObs.value = obs.value;
+        if (hiddenObsFinal) {
+            hiddenObsFinal.value = obs.value;
+        }
+    }
+    
+    // Verificar formulário antes de enviar
+    const formAdicao = document.getElementById('form-adicao');
+    if (formAdicao) {
+        formAdicao.addEventListener('submit', function(e) {
+            const servidorValue = document.getElementById('id_servidor').value;
+            if (!servidorValue) {
+                e.preventDefault();
+                alert('Por favor, selecione um servidor responsável antes de adicionar itens.');
+                document.getElementById('id_servidor').focus();
+            }
+        });
+    }
 });
 </script>
+
+<script src="../../assets/js/main.js"></script>
+<script src="script.js"></script>
 
 <?php
 // Incluir rodapé

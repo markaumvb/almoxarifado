@@ -6,10 +6,12 @@ document.addEventListener("DOMContentLoaded", function () {
   // Elementos do formulário
   const codigoInput = document.getElementById("codigo");
   const nomeItemDisplay = document.getElementById("nome_item_display");
+  const qtdeInput = document.getElementById("qtde");
   const btnBuscarCodigo = document.getElementById("btn-buscar-codigo");
   const searchTermInput = document.getElementById("search_term");
   const searchResults = document.getElementById("search_results");
   const btnSelecionarItem = document.getElementById("btn-selecionar-item");
+  const formAdicao = document.getElementById("form-adicao");
 
   // Variável para armazenar o item selecionado na pesquisa
   let selectedItemFromSearch = null;
@@ -24,47 +26,36 @@ document.addEventListener("DOMContentLoaded", function () {
       nomeItemDisplay.style.color = "#666";
 
       // Fazer requisição AJAX para buscar o item pelo código
-      const xhr = new XMLHttpRequest();
-      xhr.open(
-        "GET",
-        "../../api/itens.php?codigo=" + encodeURIComponent(codigo),
-        true
-      );
+      fetch(`../../api/itens.php?codigo=${encodeURIComponent(codigo)}`)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Erro na requisição");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          if (data && data.length > 0) {
+            // Item encontrado, exibir o nome
+            nomeItemDisplay.textContent = data[0].NOME;
+            nomeItemDisplay.style.color = "black";
 
-      xhr.onload = function () {
-        if (xhr.status === 200) {
-          try {
-            const response = JSON.parse(xhr.responseText);
-
-            if (response && response.length > 0) {
-              // Item encontrado, exibir o nome
-              nomeItemDisplay.textContent = response[0].NOME;
-              nomeItemDisplay.style.color = "black";
-            } else {
-              // Item não encontrado
-              nomeItemDisplay.textContent = "Item não encontrado";
-              nomeItemDisplay.style.color = "red";
-            }
-          } catch (error) {
-            console.error("Erro ao processar resposta:", error);
-            nomeItemDisplay.textContent = "Erro ao processar dados";
+            // Focar no campo de quantidade
+            qtdeInput.focus();
+            qtdeInput.select();
+          } else {
+            // Item não encontrado
+            nomeItemDisplay.textContent = "Item não encontrado";
             nomeItemDisplay.style.color = "red";
           }
-        } else {
-          nomeItemDisplay.textContent = "Erro na requisição";
+        })
+        .catch((error) => {
+          console.error("Erro:", error);
+          nomeItemDisplay.textContent = "Erro ao buscar item";
           nomeItemDisplay.style.color = "red";
-        }
-      };
-
-      xhr.onerror = function () {
-        nomeItemDisplay.textContent = "Erro de conexão";
-        nomeItemDisplay.style.color = "red";
-      };
-
-      xhr.send();
+        });
     } else {
       nomeItemDisplay.textContent = "Nenhum item selecionado";
-      nomeItemDisplay.style.color = "grey";
+      nomeItemDisplay.style.color = "#666";
     }
   }
 
@@ -75,104 +66,112 @@ document.addEventListener("DOMContentLoaded", function () {
     if (searchTerm.length < 2) {
       searchResults.innerHTML =
         '<tr><td colspan="5" class="text-center">Digite no mínimo 2 caracteres para pesquisar</td></tr>';
+      btnSelecionarItem.disabled = true;
       return;
     }
 
     // Fazer requisição AJAX para buscar itens pelo nome
-    const xhr = new XMLHttpRequest();
-    xhr.open(
-      "GET",
-      "../../api/itens.php?search=" + encodeURIComponent(searchTerm),
-      true
-    );
-
-    xhr.onload = function () {
-      if (xhr.status === 200) {
-        try {
-          const response = JSON.parse(xhr.responseText);
-
-          if (response && response.length > 0) {
-            // Limitar a 15 resultados
-            const itens = response.slice(0, 15);
-            let html = "";
-
-            itens.forEach(function (item) {
-              const tipoText =
-                item.TIPO === "P"
-                  ? "Permanente"
-                  : item.TIPO === "C"
-                  ? "Consumo"
-                  : item.TIPO;
-              html += `
-                              <tr class="search-result-row" data-codigo="${
-                                item.CODIGO
-                              }" data-nome="${item.NOME}">
-                                  <td>${item.CODIGO}</td>
-                                  <td>${item.NOME}</td>
-                                  <td>${tipoText}</td>
-                                  <td>${parseFloat(item.SALDO).toFixed(2)}</td>
-                                  <td>${item.unidade_nome || ""}</td>
-                              </tr>
-                          `;
-            });
-
-            searchResults.innerHTML = html;
-
-            // Adicionar evento de clique nas linhas da tabela
-            const rows = document.querySelectorAll(".search-result-row");
-            rows.forEach(function (row) {
-              row.addEventListener("click", function () {
-                // Remover seleção de todas as linhas
-                rows.forEach((r) => r.classList.remove("table-primary"));
-
-                // Adicionar seleção à linha clicada
-                this.classList.add("table-primary");
-
-                // Armazenar o item selecionado
-                selectedItemFromSearch = {
-                  codigo: this.getAttribute("data-codigo"),
-                  nome: this.getAttribute("data-nome"),
-                };
-
-                // Habilitar o botão de seleção
-                btnSelecionarItem.removeAttribute("disabled");
-              });
-            });
-          } else {
-            searchResults.innerHTML =
-              '<tr><td colspan="5" class="text-center">Nenhum item encontrado</td></tr>';
-            btnSelecionarItem.setAttribute("disabled", "disabled");
-          }
-        } catch (error) {
-          console.error("Erro ao processar resposta:", error);
-          searchResults.innerHTML =
-            '<tr><td colspan="5" class="text-center">Erro ao processar dados</td></tr>';
+    fetch(`../../api/itens.php?search=${encodeURIComponent(searchTerm)}`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Erro na requisição");
         }
-      } else {
+        return response.json();
+      })
+      .then((data) => {
+        if (data && data.length > 0) {
+          // Limitar a 15 resultados
+          const itens = data.slice(0, 15);
+          let html = "";
+
+          itens.forEach(function (item) {
+            const tipoText =
+              item.TIPO === "P"
+                ? "Permanente"
+                : item.TIPO === "C"
+                ? "Consumo"
+                : item.TIPO;
+            html += `
+              <tr class="search-result-row" data-codigo="${
+                item.CODIGO
+              }" data-nome="${item.NOME}">
+                <td>${item.CODIGO}</td>
+                <td>${item.NOME}</td>
+                <td>${tipoText}</td>
+                <td class="text-end">${parseFloat(item.SALDO).toFixed(2)}</td>
+                <td>${item.unidade_nome || ""}</td>
+              </tr>
+            `;
+          });
+
+          searchResults.innerHTML = html;
+
+          // Adicionar evento de clique nas linhas da tabela
+          const rows = document.querySelectorAll(".search-result-row");
+          rows.forEach(function (row) {
+            row.addEventListener("click", function () {
+              // Remover seleção de todas as linhas
+              rows.forEach((r) => r.classList.remove("table-primary"));
+
+              // Adicionar seleção à linha clicada
+              this.classList.add("table-primary");
+
+              // Armazenar o item selecionado
+              selectedItemFromSearch = {
+                codigo: this.getAttribute("data-codigo"),
+                nome: this.getAttribute("data-nome"),
+              };
+
+              // Habilitar o botão de seleção
+              btnSelecionarItem.disabled = false;
+            });
+          });
+        } else {
+          searchResults.innerHTML =
+            '<tr><td colspan="5" class="text-center">Nenhum item encontrado</td></tr>';
+          btnSelecionarItem.disabled = true;
+        }
+      })
+      .catch((error) => {
+        console.error("Erro:", error);
         searchResults.innerHTML =
-          '<tr><td colspan="5" class="text-center">Erro na requisição</td></tr>';
-      }
-    };
-
-    xhr.onerror = function () {
-      searchResults.innerHTML =
-        '<tr><td colspan="5" class="text-center">Erro de conexão</td></tr>';
-    };
-
-    xhr.send();
+          '<tr><td colspan="5" class="text-center">Erro ao buscar itens</td></tr>';
+        btnSelecionarItem.disabled = true;
+      });
   }
 
   // Verificar campo servidor antes de adicionar item
   function validarFormularioAdicao() {
     const idServidor = document.getElementById("id_servidor");
-    if (idServidor && idServidor.value === "") {
+    const hiddenServidor = document.getElementById("hidden_id_servidor");
+
+    if (idServidor && idServidor.value) {
+      // Atualizar o campo hidden com o valor atual
+      if (hiddenServidor) {
+        hiddenServidor.value = idServidor.value;
+      }
+      return true;
+    } else {
       alert(
         "Por favor, selecione um Servidor Responsável antes de adicionar itens."
       );
-      idServidor.focus();
+      if (idServidor) {
+        idServidor.focus();
+      }
       return false;
     }
-    return true;
+  }
+
+  // Sincronizar campos de observação
+  function sincronizarObservacoes() {
+    const obs = document.getElementById("obs");
+    const hiddenObs = document.getElementById("hidden_obs");
+    const hiddenObsFinal = document.getElementById("hidden_obs_final");
+
+    if (obs && obs.value) {
+      if (hiddenObs) hiddenObs.value = obs.value;
+      if (hiddenObsFinal) hiddenObsFinal.value = obs.value;
+    }
   }
 
   // Inicialização de eventos
@@ -190,14 +189,18 @@ document.addEventListener("DOMContentLoaded", function () {
         buscarItemPorCodigo();
       }
     });
+
+    // Também buscar quando o campo perder o foco
+    codigoInput.addEventListener("blur", buscarItemPorCodigo);
   }
 
   // Adicionar evento de validação ao formulário de adição
-  const formAdicao = document.getElementById("form-adicao");
   if (formAdicao) {
     formAdicao.addEventListener("submit", function (e) {
       if (!validarFormularioAdicao()) {
         e.preventDefault();
+      } else {
+        sincronizarObservacoes();
       }
     });
   }
@@ -210,6 +213,14 @@ document.addEventListener("DOMContentLoaded", function () {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(pesquisarItensPorNome, 300);
     });
+
+    // Pesquisar quando pressionar Enter
+    searchTermInput.addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        pesquisarItensPorNome();
+      }
+    });
   }
 
   // Adicionar evento ao botão de selecionar item
@@ -217,47 +228,79 @@ document.addEventListener("DOMContentLoaded", function () {
     btnSelecionarItem.addEventListener("click", function () {
       if (selectedItemFromSearch) {
         // Preencher o campo de código
-        codigoInput.value = selectedItemFromSearch.codigo;
+        if (codigoInput) codigoInput.value = selectedItemFromSearch.codigo;
 
         // Exibir o nome do item
-        nomeItemDisplay.textContent = selectedItemFromSearch.nome;
-        nomeItemDisplay.style.color = "black";
+        if (nomeItemDisplay) {
+          nomeItemDisplay.textContent = selectedItemFromSearch.nome;
+          nomeItemDisplay.style.color = "black";
+        }
 
         // Fechar o modal
-        const modalBuscaItem = bootstrap.Modal.getInstance(
-          document.getElementById("modalBuscaItem")
-        );
-        modalBuscaItem.hide();
+        const modalBuscaItem = document.getElementById("modalBuscaItem");
+        if (modalBuscaItem) {
+          const modal = bootstrap.Modal.getInstance(modalBuscaItem);
+          if (modal) modal.hide();
+        }
 
         // Focar no campo de quantidade
-        document.getElementById("qtde").focus();
+        if (qtdeInput) {
+          qtdeInput.focus();
+          qtdeInput.select();
+        }
       }
     });
   }
 
   // Script para preencher o modal de edição
   const editButtons = document.querySelectorAll(".edit-item");
+  if (editButtons.length > 0) {
+    editButtons.forEach((button) => {
+      button.addEventListener("click", function () {
+        const id = this.getAttribute("data-id");
+        const qtde = this.getAttribute("data-qtde");
 
-  editButtons.forEach((button) => {
-    button.addEventListener("click", function () {
-      const id = this.getAttribute("data-id");
-      const qtde = this.getAttribute("data-qtde");
+        const editTempId = document.getElementById("edit_temp_id");
+        const novaQtde = document.getElementById("nova_qtde");
 
-      document.getElementById("edit_temp_id").value = id;
-      document.getElementById("nova_qtde").value = qtde;
+        if (editTempId) editTempId.value = id;
+        if (novaQtde) {
+          novaQtde.value = qtde;
+          setTimeout(() => novaQtde.focus(), 500);
+        }
+      });
     });
-  });
+  }
 
   // Verificar código ao carregar a página
   if (codigoInput && codigoInput.value.trim()) {
     buscarItemPorCodigo();
   }
 
-  // Desabilitar botão finalizar se não houver itens
-  const btnFinalizar = document.getElementById("btn-finalizar");
-  if (btnFinalizar) {
-    // Verificar se há itens na lista
+  // Atualizar o botão finalizar com base na presença de itens
+  const atualizarBotaoFinalizar = function () {
+    const btnFinalizar = document.getElementById("btn-finalizar");
     const temItens = document.querySelectorAll(".temp-item").length > 0;
-    btnFinalizar.disabled = !temItens;
-  }
+
+    if (btnFinalizar) {
+      btnFinalizar.disabled = !temItens;
+    }
+  };
+
+  // Chamar ao carregar a página
+  atualizarBotaoFinalizar();
+
+  // Sincronizar campos ao carregar
+  window.addEventListener("load", function () {
+    // Sincronizar servidor
+    const idServidor = document.getElementById("id_servidor");
+    const hiddenServidor = document.getElementById("hidden_id_servidor");
+
+    if (idServidor && hiddenServidor) {
+      hiddenServidor.value = idServidor.value;
+    }
+
+    // Sincronizar observações
+    sincronizarObservacoes();
+  });
 });

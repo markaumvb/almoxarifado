@@ -11,6 +11,15 @@ class Saida {
         try {
             $this->db->beginTransaction();
             
+            // Verificar se há saldo suficiente
+            $item = new Item();
+            $itemData = $item->getItemByCodigo($data['codigo']);
+            
+            if (!$itemData || $itemData['SALDO'] < $data['qtde']) {
+                $this->db->rollBack();
+                return false;
+            }
+            
             $this->db->query('INSERT INTO SAIDA (CODIGO, QTDE, ID_SERVIDOR, DATA, OBS) 
                             VALUES (:codigo, :qtde, :id_servidor, :data, :obs)');
             
@@ -24,7 +33,6 @@ class Saida {
             $saida_id = $this->db->lastInsertId();
             
             // Atualizar saldo do item
-            $item = new Item();
             if (!$item->updateSaldo($data['codigo'], $data['qtde'], 'saida')) {
                 $this->db->rollBack();
                 return false;
@@ -33,7 +41,9 @@ class Saida {
             $this->db->commit();
             return $saida_id;
         } catch (PDOException $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log('Erro ao registrar saída: ' . $e->getMessage());
             return false;
         }
@@ -59,11 +69,13 @@ class Saida {
             
             // Atualizar saída
             $this->db->query('UPDATE SAIDA 
-                            SET QTDE = :qtde
+                            SET QTDE = :qtde, 
+                                OBS = :obs
                             WHERE ID = :id');
             
             $this->db->bind(':id', $data['id']);
             $this->db->bind(':qtde', $data['qtde']);
+            $this->db->bind(':obs', $data['obs']);
             
             $this->db->execute();
             
@@ -82,7 +94,9 @@ class Saida {
             $this->db->commit();
             return true;
         } catch (PDOException $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log('Erro ao atualizar saída: ' . $e->getMessage());
             return false;
         }
@@ -118,8 +132,22 @@ class Saida {
             $this->db->commit();
             return true;
         } catch (PDOException $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log('Erro ao excluir saída: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    // Obter saída por ID
+    public function getSaidaById($id) {
+        try {
+            $this->db->query('SELECT * FROM SAIDA WHERE ID = :id');
+            $this->db->bind(':id', $id);
+            return $this->db->single();
+        } catch (PDOException $e) {
+            error_log('Erro ao buscar saída por ID: ' . $e->getMessage());
             return false;
         }
     }
@@ -129,11 +157,11 @@ class Saida {
         try {
             $this->db->query('SELECT s.*, i.NOME as item_nome, sv.NOME as servidor_nome, se.NOME as setor_nome 
                             FROM SAIDA s
-                            JOIN ITENS i ON s.CODIGO = i.CODIGO
-                            JOIN SERVIDOR sv ON s.ID_SERVIDOR = sv.ID
+                            LEFT JOIN ITENS i ON s.CODIGO = i.CODIGO
+                            LEFT JOIN SERVIDOR sv ON s.ID_SERVIDOR = sv.ID
                             LEFT JOIN SETOR se ON sv.ID_SETOR = se.ID
                             WHERE s.DATA BETWEEN :data_inicio AND :data_fim
-                            ORDER BY s.DATA DESC');
+                            ORDER BY s.DATA DESC, s.ID DESC');
             
             $this->db->bind(':data_inicio', $dataInicio);
             $this->db->bind(':data_fim', $dataFim);
@@ -142,6 +170,66 @@ class Saida {
         } catch (PDOException $e) {
             error_log('Erro ao buscar saídas por período: ' . $e->getMessage());
             return [];
+        }
+    }
+
+    // Adicionar múltiplas saídas (para importação)
+    public function addMultiple($data) {
+        try {
+            $result = [
+                'success' => true,
+                'message' => '',
+                'items_saved' => 0,
+                'items_failed' => 0
+            ];
+            
+            $this->db->beginTransaction();
+            
+            if (empty($data['itens'])) {
+                $result['success'] = false;
+                $result['message'] = 'Nenhum item para registrar';
+                return $result;
+            }
+            
+            foreach ($data['itens'] as $itemData) {
+                $saida_data = [
+                    'codigo' => $itemData['codigo'],
+                    'qtde' => $itemData['quantidade'],
+                    'id_servidor' => $data['id_servidor'],
+                    'data' => $data['data'],
+                    'obs' => $itemData['observacao']
+                ];
+                
+                $saida_id = $this->add($saida_data);
+                
+                if ($saida_id) {
+                    $result['items_saved']++;
+                } else {
+                    $result['items_failed']++;
+                }
+            }
+            
+            if ($result['items_failed'] > 0) {
+                $this->db->rollBack();
+                $result['success'] = false;
+                $result['message'] = 'Não foi possível salvar todos os itens. Verifique o saldo disponível.';
+            } else {
+                $this->db->commit();
+                $result['message'] = 'Saída registrada com sucesso. ' . $result['items_saved'] . ' item(ns) registrado(s).';
+            }
+            
+            return $result;
+        } catch (PDOException $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log('Erro ao registrar múltiplas saídas: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Erro ao processar: ' . $e->getMessage(),
+                'items_saved' => 0,
+                'items_failed' => 0
+            ];
         }
     }
 

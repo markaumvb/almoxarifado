@@ -7,6 +7,7 @@ class Database {
     private $conn;
     private $stmt;
     private $error;
+    private $inTransaction = false;
 
     public function __construct() {
         // Usar constantes definidas no config.php
@@ -27,8 +28,7 @@ class Database {
         }
     }
 
-
-        // Preparar declaração com query
+    // Preparar declaração com query
     public function query($sql) {
         $this->stmt = $this->conn->prepare($sql);
         return $this;
@@ -89,17 +89,25 @@ class Database {
 
     // Iniciar transação
     public function beginTransaction() {
+        $this->inTransaction = true;
         return $this->conn->beginTransaction();
     }
 
     // Commit transação
     public function commit() {
+        $this->inTransaction = false;
         return $this->conn->commit();
     }
 
     // Rollback transação
     public function rollBack() {
+        $this->inTransaction = false;
         return $this->conn->rollBack();
+    }
+
+    // Verificar se há uma transação em andamento
+    public function inTransaction() {
+        return $this->inTransaction;
     }
 
     // Verificar se uma tabela existe

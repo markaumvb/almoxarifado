@@ -123,4 +123,18 @@ class Servidor {
             return false;
         }
     }
+    
+    public function getServidoresAtivos() {
+        try {
+            $this->db->query('SELECT s.*, st.NOME as SETOR_NOME 
+                              FROM SERVIDOR s 
+                              LEFT JOIN SETOR st ON s.ID_SETOR = st.ID
+                              WHERE s.STATUS = "A"
+                              ORDER BY s.NOME');
+            return $this->db->resultSet();
+        } catch (PDOException $e) {
+            error_log('Erro ao buscar servidores ativos: ' . $e->getMessage());
+            return [];
+        }
+    }
 }

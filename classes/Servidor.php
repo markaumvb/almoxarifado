@@ -20,6 +20,21 @@ class Servidor {
         }
     }
 
+    // Obter apenas servidores ativos
+    public function getServidoresAtivos() {
+        try {
+            $this->db->query('SELECT s.*, st.NOME as SETOR_NOME 
+                          FROM SERVIDOR s 
+                          LEFT JOIN SETOR st ON s.ID_SETOR = st.ID
+                          WHERE s.STATUS = "A"
+                          ORDER BY s.NOME');
+            return $this->db->resultSet();
+        } catch (PDOException $e) {
+            error_log('Erro ao buscar servidores ativos: ' . $e->getMessage());
+            return [];
+        }
+    }
+
     // Obter servidor por ID
     public function getServidorById($id) {
         try {
@@ -35,13 +50,24 @@ class Servidor {
     // Adicionar servidor
     public function add($data) {
         try {
-            $this->db->query('INSERT INTO SERVIDOR (NOME, MATRICULA, ID_SETOR, EMAIL, STATUS) 
-                            VALUES (:nome, :matricula, :id_setor, :email, :status)');
+            // Verificar se a coluna TELEFONE existe na tabela
+            $this->db->query("SHOW COLUMNS FROM SERVIDOR LIKE 'TELEFONE'");
+            $column_exists = $this->db->single();
+            
+            if (!$column_exists) {
+                // Adicionar a coluna TELEFONE se não existir
+                $this->db->query("ALTER TABLE SERVIDOR ADD COLUMN TELEFONE VARCHAR(15) NULL");
+                $this->db->execute();
+            }
+            
+            $this->db->query('INSERT INTO SERVIDOR (NOME, MATRICULA, ID_SETOR, EMAIL, TELEFONE, STATUS) 
+                            VALUES (:nome, :matricula, :id_setor, :email, :telefone, :status)');
             
             $this->db->bind(':nome', $data['nome']);
             $this->db->bind(':matricula', $data['matricula']);
             $this->db->bind(':id_setor', $data['id_setor']);
             $this->db->bind(':email', $data['email']);
+            $this->db->bind(':telefone', $data['telefone']);
             $this->db->bind(':status', $data['status']);
 
             if($this->db->execute()) {
@@ -58,11 +84,22 @@ class Servidor {
     // Atualizar servidor
     public function update($data) {
         try {
+            // Verificar se a coluna TELEFONE existe na tabela
+            $this->db->query("SHOW COLUMNS FROM SERVIDOR LIKE 'TELEFONE'");
+            $column_exists = $this->db->single();
+            
+            if (!$column_exists) {
+                // Adicionar a coluna TELEFONE se não existir
+                $this->db->query("ALTER TABLE SERVIDOR ADD COLUMN TELEFONE VARCHAR(15) NULL");
+                $this->db->execute();
+            }
+            
             $this->db->query('UPDATE SERVIDOR 
                             SET NOME = :nome, 
                                 MATRICULA = :matricula, 
                                 ID_SETOR = :id_setor, 
-                                EMAIL = :email, 
+                                EMAIL = :email,
+                                TELEFONE = :telefone,
                                 STATUS = :status 
                             WHERE ID = :id');
             
@@ -71,6 +108,7 @@ class Servidor {
             $this->db->bind(':matricula', $data['matricula']);
             $this->db->bind(':id_setor', $data['id_setor']);
             $this->db->bind(':email', $data['email']);
+            $this->db->bind(':telefone', $data['telefone']);
             $this->db->bind(':status', $data['status']);
 
             return $this->db->execute();
@@ -83,6 +121,15 @@ class Servidor {
     // Deletar servidor
     public function delete($id) {
         try {
+            // Verificar se há saídas vinculadas
+            $this->db->query('SELECT COUNT(*) as count FROM SAIDA WHERE ID_SERVIDOR = :id');
+            $this->db->bind(':id', $id);
+            $result = $this->db->single();
+            
+            if ($result && $result['count'] > 0) {
+                return false; // Não permite excluir se houver saídas
+            }
+            
             $this->db->query('DELETE FROM SERVIDOR WHERE ID = :id');
             $this->db->bind(':id', $id);
             return $this->db->execute();
@@ -121,20 +168,6 @@ class Servidor {
         } catch (PDOException $e) {
             error_log('Erro ao verificar matrícula: ' . $e->getMessage());
             return false;
-        }
-    }
-    
-    public function getServidoresAtivos() {
-        try {
-            $this->db->query('SELECT s.*, st.NOME as SETOR_NOME 
-                              FROM SERVIDOR s 
-                              LEFT JOIN SETOR st ON s.ID_SETOR = st.ID
-                              WHERE s.STATUS = "A"
-                              ORDER BY s.NOME');
-            return $this->db->resultSet();
-        } catch (PDOException $e) {
-            error_log('Erro ao buscar servidores ativos: ' . $e->getMessage());
-            return [];
         }
     }
 }

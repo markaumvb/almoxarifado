@@ -38,11 +38,11 @@ $unidades = $unidade->getUnidades();
                             <td><?php echo $u['NOME']; ?></td>
                             <td><?php echo $u['SIGLA']; ?></td>
                             <td>
-                                <a href="edit.php?id=<?php echo $u['ID']; ?>" class="btn btn-sm btn-warning" data-bs-toggle="tooltip" title="Editar">
+                                <a href="edit.php?id=<?php echo $u['ID']; ?>" class="btn btn-sm btn-warning" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <!-- Botão de exclusão simplificado -->
-                                <a href="#" class="btn btn-sm btn-danger btn-delete" data-id="<?php echo $u['ID']; ?>" data-bs-toggle="tooltip" title="Excluir">
+                                <!-- Botão de exclusão com href direto -->
+                                <a href="delete.php?id=<?php echo $u['ID']; ?>" class="btn btn-sm btn-danger" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir esta unidade?');">
                                     <i class="fas fa-trash"></i>
                                 </a>
                             </td>
@@ -54,29 +54,6 @@ $unidades = $unidade->getUnidades();
         </div>
     </div>
 </div>
-
-<script>
-$(document).ready(function() {
-    // Botão de exclusão
-    $('.btn-delete').click(function(e) {
-        e.preventDefault();
-        
-        var id = $(this).data('id');
-        var confirmDelete = confirm("Tem certeza que deseja excluir esta unidade?");
-        
-        if(confirmDelete) {
-            // Redirecionar para a página de exclusão
-            window.location.href = 'delete.php?id=' + id;
-        }
-    });
-    
-    // Inicializar tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-});
-</script>
 
 <?php
 // Incluir o rodapé

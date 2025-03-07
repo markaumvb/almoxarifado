@@ -11,7 +11,7 @@ require_once ROOT_PATH . 'classes/Setor.php';
 // Verificar ID
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     setMessage('ID do servidor não especificado', 'danger');
-    header('Location: ' . ROOT_URL . 'pages/servidores/index.php');
+    header('Location: index.php');
     exit;
 }
 
@@ -26,7 +26,7 @@ $servidorInfo = $servidor->getServidorById($id);
 
 if (!$servidorInfo) {
     setMessage('Servidor não encontrado', 'danger');
-    header('Location: ' . ROOT_URL . 'pages/servidores/index.php');
+    header('Location: index.php');
     exit;
 }
 
@@ -40,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $matricula = filter_input(INPUT_POST, 'matricula', FILTER_SANITIZE_NUMBER_INT);
     $id_setor = filter_input(INPUT_POST, 'id_setor', FILTER_SANITIZE_NUMBER_INT);
     $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
+    $telefone = filter_input(INPUT_POST, 'telefone', FILTER_SANITIZE_STRING);
     $status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_STRING);
     
     // Verificar dados obrigatórios
@@ -53,13 +54,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             'matricula' => $matricula,
             'id_setor' => $id_setor,
             'email' => $email,
+            'telefone' => $telefone,
             'status' => $status
         ];
         
         // Atualizar servidor
         if ($servidor->update($data)) {
             setMessage('Servidor atualizado com sucesso!');
-            header('Location: ' . ROOT_URL . 'pages/servidores/index.php');
+            header('Location: index.php');
             exit;
         } else {
             setMessage('Erro ao atualizar servidor', 'danger');
@@ -71,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3">Editar Servidor</h1>
-        <a href="<?php echo ROOT_URL; ?>pages/servidores/index.php" class="btn btn-secondary">
+        <a href="index.php" class="btn btn-secondary">
             <i class="fas fa-arrow-left me-2"></i>Voltar
         </a>
     </div>
@@ -113,12 +115,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             </div>
                         </div>
                         
-                        <div class="mb-3">
-                            <label for="status" class="form-label">Status</label>
-                            <select class="form-select" id="status" name="status">
-                                <option value="A" <?php echo ($servidorInfo['STATUS'] == 'A') ? 'selected' : ''; ?>>Ativo</option>
-                                <option value="I" <?php echo ($servidorInfo['STATUS'] == 'I') ? 'selected' : ''; ?>>Inativo</option>
-                            </select>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="telefone" class="form-label">Telefone</label>
+                                <input type="text" class="form-control" id="telefone" name="telefone" maxlength="15" value="<?php echo isset($servidorInfo['TELEFONE']) ? $servidorInfo['TELEFONE'] : ''; ?>" placeholder="(00) 00000-0000">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="A" <?php echo ($servidorInfo['STATUS'] == 'A') ? 'selected' : ''; ?>>Ativo</option>
+                                    <option value="I" <?php echo ($servidorInfo['STATUS'] == 'I') ? 'selected' : ''; ?>>Inativo</option>
+                                </select>
+                            </div>
                         </div>
                         
                         <div class="text-center mt-4">
@@ -132,6 +140,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </div>
     </div>
 </div>
+
+<script>
+// Máscara para o telefone
+document.addEventListener('DOMContentLoaded', function() {
+    const telefoneInput = document.getElementById('telefone');
+    
+    if (telefoneInput) {
+        telefoneInput.addEventListener('input', function(e) {
+            var x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,5})(\d{0,4})/);
+            e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
+        });
+    }
+});
+</script>
 
 <?php
 // Incluir o rodapé

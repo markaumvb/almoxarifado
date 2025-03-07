@@ -6,9 +6,11 @@ define('APP_VERSION', '1.0.0');
 
 // Configurações de caminho
 define('ROOT_PATH', dirname(dirname(__FILE__)) . '/');
-define('URL_ROOT', 'https://200.238.174.7/almoxarifado');
 
-// Resto do código...
+// IMPORTANTE: Correção da URL_ROOT e ROOT_URL
+define('URL_ROOT', 'https://200.238.174.7/almoxarifado');
+define('ROOT_URL', 'https://200.238.174.7/almoxarifado');
+
 // Configurações do banco de dados
 define('DB_HOST', '200.238.174.7');
 define('DB_USER', 'almoxarifado');
@@ -50,7 +52,6 @@ function getFlashMessage() {
     }
     return null;
 }
-
 
 // Carrega classes automaticamente
 spl_autoload_register(function($className) {

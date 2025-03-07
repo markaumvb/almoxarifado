@@ -10,7 +10,7 @@ require_once ROOT_PATH . 'classes/Setor.php';
 // Verificar ID
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     setMessage('ID do setor não especificado', 'danger');
-    header('Location: ' . ROOT_URL . 'pages/setores/index.php');
+    header('Location: index.php');
     exit;
 }
 
@@ -24,7 +24,7 @@ $setorInfo = $setor->getSetorById($id);
 
 if (!$setorInfo) {
     setMessage('Setor não encontrado', 'danger');
-    header('Location: ' . ROOT_URL . 'pages/setores/index.php');
+    header('Location: index.php');
     exit;
 }
 
@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Atualizar setor
         if ($setor->update($data)) {
             setMessage('Setor atualizado com sucesso!');
-            header('Location: ' . ROOT_URL . 'pages/setores/index.php');
+            header('Location: index.php');
             exit;
         } else {
             setMessage('Erro ao atualizar setor', 'danger');
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3">Editar Setor</h1>
-        <a href="<?php echo ROOT_URL; ?>pages/setores/index.php" class="btn btn-secondary">
+        <a href="index.php" class="btn btn-secondary">
             <i class="fas fa-arrow-left me-2"></i>Voltar
         </a>
     </div>

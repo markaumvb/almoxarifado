@@ -2,13 +2,10 @@
 // pages/setores/delete.php
 
 // Incluir arquivos necessários
-define('ROOT_PATH', dirname(dirname(dirname(__FILE__))) . '/');
-define('ROOT_URL', 'http://' . $_SERVER['HTTP_HOST'] . '/almoxarifado/');
-
-require_once ROOT_PATH . 'config/database.php';
-require_once ROOT_PATH . 'classes/Database.php';
-require_once ROOT_PATH . 'classes/Setor.php';
-require_once ROOT_PATH . 'includes/auth.php';
+require_once '../../config/config.php';
+require_once '../../classes/Database.php';
+require_once '../../classes/Setor.php';
+require_once '../../includes/auth.php';
 
 // Verificar se o usuário está logado
 requireLogin();
@@ -16,7 +13,7 @@ requireLogin();
 // Verificar ID
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     setMessage('ID do setor não especificado', 'danger');
-    header('Location: ' . ROOT_URL . 'pages/setores/index.php');
+    header('Location: index.php');
     exit;
 }
 
@@ -26,12 +23,14 @@ $id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
 $setor = new Setor();
 
 // Excluir o setor
-if ($setor->delete($id)) {
+$result = $setor->delete($id);
+
+if ($result === true) {
     setMessage('Setor excluído com sucesso!');
 } else {
     setMessage('Não é possível excluir este setor porque ele está sendo usado por servidores', 'danger');
 }
 
 // Redirecionar para a lista
-header('Location: ' . ROOT_URL . 'pages/setores/index.php');
+header('Location: index.php');
 exit;

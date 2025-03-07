@@ -109,8 +109,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <label for="tipo" class="form-label">Tipo <span class="text-danger">*</span></label>
                                 <select class="form-select" id="tipo" name="tipo" required>
                                     <option value="">Selecione</option>
-                                    <option value="P" <?php echo ($itemInfo['TIPO'] == 'P') ? 'selected' : ''; ?>>Permanente</option>
-                                    <option value="C" <?php echo ($itemInfo['TIPO'] == 'C') ? 'selected' : ''; ?>>Consumo</option>
+                                    <option value="1" <?php echo ($itemInfo['TIPO'] == 1) ? 'selected' : ''; ?>>Consumo</option>
+                                    <option value="2" <?php echo ($itemInfo['TIPO'] == 2) ? 'selected' : ''; ?>>Equipamento</option>
+                                    <option value="3" <?php echo ($itemInfo['TIPO'] == 3) ? 'selected' : ''; ?>>Empenho</option>
                                 </select>
                             </div>
                             <div class="col-md-8">

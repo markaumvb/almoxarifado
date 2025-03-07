@@ -11,15 +11,6 @@ $item = new Item();
 $items = $item->getItems();
 $itemCount = count($items);
 
-// Verificar problemas de estoque
-$lowStockItems = [];
-foreach ($items as $itemData) {
-    if ($itemData['SALDO'] <= $itemData['SALDO_MINIMO']) {
-        $lowStockItems[] = $itemData;
-    }
-}
-$lowStockCount = count($lowStockItems);
-
 // Instanciar Saida para obter movimentações recentes
 $saida = new Saida();
 $today = date('Y-m-d');
@@ -41,7 +32,7 @@ include_once '../includes/header.php';
 
     <div class="row mt-4">
         <!-- Card de itens -->
-        <div class="col-md-4 mb-4">
+        <div class="col-md-6 mb-4">
             <div class="card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -61,29 +52,8 @@ include_once '../includes/header.php';
             </div>
         </div>
 
-        <!-- Card de estoque baixo -->
-        <div class="col-md-4 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Itens com Estoque Baixo</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $lowStockCount; ?></div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer text-center">
-                    <a href="../pages/relatorios/estoque_baixo.php" class="btn btn-sm btn-warning">Ver Detalhes</a>
-                </div>
-            </div>
-        </div>
-
         <!-- Card de saídas recentes -->
-        <div class="col-md-4 mb-4">
+        <div class="col-md-6 mb-4">
             <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -103,8 +73,6 @@ include_once '../includes/header.php';
             </div>
         </div>
     </div>
-
-   
 
     <!-- Últimas saídas -->
     <?php if(count($recentSaidas) > 0): ?>

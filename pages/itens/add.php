@@ -85,8 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <label for="tipo" class="form-label">Tipo <span class="text-danger">*</span></label>
                                 <select class="form-select" id="tipo" name="tipo" required>
                                     <option value="">Selecione</option>
-                                    <option value="P">Permanente</option>
-                                    <option value="C">Consumo</option>
+                                    <option value="1">Consumo</option>
+                                    <option value="2">Equipamento</option>
+                                    <option value="3">Empenho</option>
                                 </select>
                             </div>
                             <div class="col-md-8">

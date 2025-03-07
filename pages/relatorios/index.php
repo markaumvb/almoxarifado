@@ -47,7 +47,7 @@ include_once '../../includes/header.php';
         <div class="col-md-12 mb-4">
             <div class="card shadow">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Relatório de Saídas</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">Relatório Geral de Saídas</h6>
                     <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">
                         <i class="fas fa-print me-2"></i> Imprimir
                     </button>

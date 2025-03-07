@@ -1,22 +1,23 @@
 <?php
 // pages/unidades/delete.php
 
-// Incluir arquivos necessários
-define('ROOT_PATH', dirname(dirname(dirname(__FILE__))) . '/');
-define('ROOT_URL', 'http://' . $_SERVER['HTTP_HOST'] . '/almoxarifado/');
-
-require_once ROOT_PATH . 'config/database.php';
-require_once ROOT_PATH . 'classes/Database.php';
-require_once ROOT_PATH . 'classes/Unidade.php';
-require_once ROOT_PATH . 'includes/auth.php';
+// Incluir arquivos necessários para ter acesso a todas as constantes e funções
+require_once '../../config/config.php';
+require_once '../../classes/Database.php';
+require_once '../../classes/Unidade.php';
+require_once '../../includes/auth.php';
 
 // Verificar se o usuário está logado
-requireLogin();
+if(!isLoggedIn()) {
+    setMessage('Você precisa estar logado para acessar esta página', 'danger');
+    redirect('../../login.php');
+    exit;
+}
 
 // Verificar ID
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     setMessage('ID da unidade não especificado', 'danger');
-    header('Location: ' . ROOT_URL . 'pages/unidades/index.php');
+    header('Location: index.php');
     exit;
 }
 
@@ -33,5 +34,5 @@ if ($unidade->delete($id)) {
 }
 
 // Redirecionar para a lista
-header('Location: ' . ROOT_URL . 'pages/unidades/index.php');
+header('Location: index.php');
 exit;

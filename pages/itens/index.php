@@ -42,11 +42,14 @@ $itens = $item->getItems();
                             <td>
                                 <?php 
                                 switch($i['TIPO']) {
-                                    case 'P':
-                                        echo 'Permanente';
-                                        break;
-                                    case 'C':
+                                    case 1:
                                         echo 'Consumo';
+                                        break;
+                                    case 2:
+                                        echo 'Equipamento';
+                                        break;
+                                    case 3:
+                                        echo 'Empenho';
                                         break;
                                     default:
                                         echo $i['TIPO'];

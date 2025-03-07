@@ -1,4 +1,4 @@
-// assets/js/main.js
+// assets/js/main.js atualizado
 
 // Inicializar DataTables
 $(document).ready(function () {
@@ -26,6 +26,24 @@ $(document).ready(function () {
   var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
     return new bootstrap.Popover(popoverTriggerEl);
   });
+
+  // Verificar URL atual para expandir menus automáticamente
+  var currentUrl = window.location.href;
+
+  // Expandir menu de cadastros quando estiver em alguma página de cadastro
+  if (
+    currentUrl.includes("/itens/") ||
+    currentUrl.includes("/setores/") ||
+    currentUrl.includes("/servidores/") ||
+    currentUrl.includes("/unidades/")
+  ) {
+    $("#cadastrosSubmenu").addClass("show");
+  }
+
+  // Expandir menu de relatórios quando estiver em alguma página de relatório
+  if (currentUrl.includes("/relatorios/")) {
+    $("#relatoriosSubmenu").addClass("show");
+  }
 
   // Adicionar item à lista de saída temporária
   $(document).on("click", ".btn-add-item", function (e) {
@@ -155,7 +173,7 @@ $(document).ready(function () {
     var search = $(this).val().toLowerCase();
 
     $.ajax({
-      url: "../api/itens.php",
+      url: "../../api/itens.php",
       type: "GET",
       data: { search: search },
       success: function (data) {
@@ -163,11 +181,16 @@ $(document).ready(function () {
         var html = "";
 
         items.forEach(function (item) {
+          let tipoText = "Desconhecido";
+          if (item.TIPO == 1) tipoText = "Consumo";
+          else if (item.TIPO == 2) tipoText = "Equipamento";
+          else if (item.TIPO == 3) tipoText = "Empenho";
+
           html += `
-                      <li class="list-group-item item-result" data-id="${item.ID}" data-codigo="${item.CODIGO}" data-nome="${item.NOME}">
-                          <strong>${item.CODIGO}</strong> - ${item.NOME}
-                      </li>
-                  `;
+              <li class="list-group-item item-result" data-id="${item.ID}" data-codigo="${item.CODIGO}" data-nome="${item.NOME}">
+                  <strong>${item.CODIGO}</strong> - ${item.NOME} (${tipoText})
+              </li>
+          `;
         });
 
         $("#items-results").html(html);

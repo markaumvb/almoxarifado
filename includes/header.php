@@ -86,13 +86,23 @@ if (!isLoggedIn()) {
                     </ul>
                 </li>
                 <li>
-                    <a href="<?php echo URL_ROOT; ?>/pages/relatorios/index.php" class="nav-link text-white">
+                    <a href="#relatoriosSubmenu" data-bs-toggle="collapse" aria-expanded="false" class="dropdown-toggle nav-link text-white">
                         <i class="fas fa-chart-bar me-2"></i> Relatórios
                     </a>
+                    <ul class="collapse list-unstyled ms-3" id="relatoriosSubmenu">
+                        <li>
+                            <a href="<?php echo URL_ROOT; ?>/pages/relatorios/index.php" class="nav-link text-white">
+                                <i class="fas fa-file-alt me-2"></i> Relatório Geral
+                            </a>
+                        </li>
+                        <li>
+                            <a href="<?php echo URL_ROOT; ?>/pages/relatorios/inventario.php" class="nav-link text-white">
+                                <i class="fas fa-clipboard-list me-2"></i> Inventário
+                            </a>
+                        </li>
+                    </ul>
                 </li>
-               
             </ul>
-            
         </nav>
 
         <!-- Conteúdo da página -->

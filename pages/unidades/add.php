@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Adicionar unidade
         if ($unidade->add($data)) {
             setMessage('Unidade de medida adicionada com sucesso!');
-            header('Location: ' . ROOT_URL . 'pages/unidades/index.php');
+            header('Location: index.php'); // Caminho relativo simplificado
             exit;
         } else {
             setMessage('Erro ao adicionar unidade de medida', 'danger');
@@ -41,7 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3">Nova Unidade de Medida</h1>
-        <a href="<?php echo ROOT_URL; ?>pages/unidades/index.php" class="btn btn-secondary">
+        <!-- Botão voltar com caminho relativo simples -->
+        <a href="index.php" class="btn btn-secondary">
             <i class="fas fa-arrow-left me-2"></i>Voltar
         </a>
     </div>

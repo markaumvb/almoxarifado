@@ -65,7 +65,19 @@ class Item {
         }
     }
     
-    // Verificar se há saldo suficiente - REMOVIDA, NÃO UTILIZADA MAIS
+    // Converter tipo numérico para texto
+    public function getTipoText($tipo) {
+        switch($tipo) {
+            case 1:
+                return 'Consumo';
+            case 2:
+                return 'Equipamento';
+            case 3:
+                return 'Empenho';
+            default:
+                return 'Desconhecido';
+        }
+    }
 
     // Adicionar item
     public function add($data) {
@@ -120,7 +132,6 @@ class Item {
             return false;
         }
     }
-
 
     public function delete($id) {
         try {

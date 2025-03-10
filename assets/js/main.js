@@ -1,58 +1,232 @@
-// assets/js/main.js atualizado
+// Usar IIFE para evitar poluição do escopo global
+(function () {
+  // DOM Ready - Executar quando o DOM estiver carregado
+  document.addEventListener("DOMContentLoaded", function () {
+    // Inicializar componentes da UI
+    initializeUI();
 
-// Inicializar DataTables
-$(document).ready(function () {
-  if ($(".datatable").length > 0) {
-    $(".datatable").DataTable({
-      language: {
-        url: "https://cdn.datatables.net/plug-ins/1.11.5/i18n/pt-BR.json",
-      },
-      responsive: true,
+    // Inicializar funcionalidades específicas para cada página
+    initializeFunctions();
+
+    // Funcionalidades gerais
+    handleResponsiveLayout();
+  });
+
+  /**
+   * Inicializa componentes da interface
+   */
+  function initializeUI() {
+    // Inicializar DataTables
+    initDataTables();
+
+    // Inicializar Bootstrap Tooltips
+    initTooltips();
+
+    // Inicializar Bootstrap Popovers
+    initPopovers();
+
+    // Inicializar alertas automáticos
+    initAutoCloseAlerts();
+
+    // Inicializar sidebar
+    initSidebar();
+  }
+
+  /**
+   * Inicializar DataTables com configurações padrão
+   */
+  function initDataTables() {
+    if ($.fn.DataTable) {
+      $(".datatable").DataTable({
+        language: {
+          url: "//cdn.datatables.net/plug-ins/1.11.5/i18n/pt-BR.json",
+        },
+        responsive: true,
+        pageLength: 25,
+        stateSave: true,
+        columnDefs: [
+          { orderable: false, targets: -1 }, // Última coluna (ações) não ordenável
+        ],
+      });
+    }
+  }
+
+  /**
+   * Inicializar tooltips do Bootstrap
+   */
+  function initTooltips() {
+    var tooltipTriggerList = [].slice.call(
+      document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    );
+
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl, {
+        trigger: "hover",
+        boundary: "window",
+      });
     });
   }
 
-  // Inicializar tooltips
-  var tooltipTriggerList = [].slice.call(
-    document.querySelectorAll('[data-bs-toggle="tooltip"]')
-  );
-  var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-    return new bootstrap.Tooltip(tooltipTriggerEl);
-  });
+  /**
+   * Inicializar popovers do Bootstrap
+   */
+  function initPopovers() {
+    var popoverTriggerList = [].slice.call(
+      document.querySelectorAll('[data-bs-toggle="popover"]')
+    );
 
-  // Inicializar popovers
-  var popoverTriggerList = [].slice.call(
-    document.querySelectorAll('[data-bs-toggle="popover"]')
-  );
-  var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-    return new bootstrap.Popover(popoverTriggerEl);
-  });
-
-  // Verificar URL atual para expandir menus automáticamente
-  var currentUrl = window.location.href;
-
-  // Expandir menu de cadastros quando estiver em alguma página de cadastro
-  if (
-    currentUrl.includes("/itens/") ||
-    currentUrl.includes("/setores/") ||
-    currentUrl.includes("/servidores/") ||
-    currentUrl.includes("/unidades/")
-  ) {
-    $("#cadastrosSubmenu").addClass("show");
+    popoverTriggerList.map(function (popoverTriggerEl) {
+      return new bootstrap.Popover(popoverTriggerEl);
+    });
   }
 
-  // Expandir menu de relatórios quando estiver em alguma página de relatório
-  if (currentUrl.includes("/relatorios/")) {
-    $("#relatoriosSubmenu").addClass("show");
+  /**
+   * Inicializar fechamento automático de alertas
+   */
+  function initAutoCloseAlerts() {
+    // Fechar alertas automaticamente após 5 segundos
+    window.setTimeout(function () {
+      const alerts = document.querySelectorAll(".alert:not(.alert-permanent)");
+      alerts.forEach((alert) => {
+        if (alert && bootstrap.Alert) {
+          const bsAlert = new bootstrap.Alert(alert);
+          bsAlert.close();
+        }
+      });
+    }, 5000);
   }
 
-  // Adicionar item à lista de saída temporária
-  $(document).on("click", ".btn-add-item", function (e) {
-    e.preventDefault();
-    var itemId = $("#item_id").val();
-    var itemCodigo = $("#item_codigo").val();
-    var itemNome = $("#item_nome").val();
-    var quantidade = $("#quantidade").val();
-    var observacao = $("#observacao").val();
+  /**
+   * Inicializa a sidebar e o botão de colapso
+   */
+  function initSidebar() {
+    const sidebarCollapseBtn = document.getElementById("sidebarCollapse");
+
+    if (sidebarCollapseBtn) {
+      sidebarCollapseBtn.addEventListener("click", function () {
+        const sidebar = document.getElementById("sidebar");
+        const content = document.getElementById("content");
+
+        if (sidebar) {
+          sidebar.classList.toggle("active");
+        }
+
+        if (content) {
+          content.classList.toggle("active");
+        }
+      });
+    }
+
+    // Expandir menus baseado na URL atual
+    expandActiveMenus();
+  }
+
+  /**
+   * Expande os menus ativos baseados na URL atual
+   */
+  function expandActiveMenus() {
+    const currentUrl = window.location.href;
+
+    // Expandir menu de cadastros quando estiver em alguma página de cadastro
+    if (
+      currentUrl.includes("/itens/") ||
+      currentUrl.includes("/setores/") ||
+      currentUrl.includes("/servidores/") ||
+      currentUrl.includes("/unidades/")
+    ) {
+      const cadastrosSubmenu = document.getElementById("cadastrosSubmenu");
+      if (cadastrosSubmenu) {
+        cadastrosSubmenu.classList.add("show");
+      }
+    }
+
+    // Expandir menu de relatórios quando estiver em alguma página de relatório
+    if (currentUrl.includes("/relatorios/")) {
+      const relatoriosSubmenu = document.getElementById("relatoriosSubmenu");
+      if (relatoriosSubmenu) {
+        relatoriosSubmenu.classList.add("show");
+      }
+    }
+
+    // Adiciona a classe 'active' ao link atual na sidebar
+    const navLinks = document.querySelectorAll(".nav-link");
+    navLinks.forEach((link) => {
+      if (link.href === currentUrl) {
+        link.classList.add("active");
+        // Adiciona a classe 'active' ao pai, se existir
+        const parentLi = link.closest("li");
+        if (parentLi) {
+          parentLi.classList.add("active");
+        }
+      }
+    });
+  }
+
+  /**
+   * Inicializa funcionalidades específicas para cada página
+   */
+  function initializeFunctions() {
+    // Inicializar funções para página de saídas
+    initSaidasFunctions();
+
+    // Inicializar funções para página de itens
+    initItensFunctions();
+
+    // Inicializar funções para página de relatórios
+    initRelatoriosFunctions();
+  }
+
+  /**
+   * Funções específicas para as páginas de saídas
+   */
+  function initSaidasFunctions() {
+    // Adicionar item à lista
+    const btnAddItem = document.querySelector(".btn-add-item");
+    if (btnAddItem) {
+      btnAddItem.addEventListener("click", function () {
+        addItemToList();
+      });
+    }
+
+    // Remover item da lista
+    document.addEventListener("click", function (e) {
+      if (e.target.closest(".btn-remove-item")) {
+        e.preventDefault();
+        if (confirm("Tem certeza que deseja remover este item?")) {
+          const btn = e.target.closest(".btn-remove-item");
+          const tr = btn.closest("tr");
+          if (tr) {
+            tr.remove();
+            updateItemCount();
+          }
+        }
+      }
+    });
+
+    // Editar item
+    document.addEventListener("click", function (e) {
+      if (e.target.closest(".btn-edit-item")) {
+        const btn = e.target.closest(".btn-edit-item");
+        editItem(btn);
+      }
+    });
+
+    // Pesquisa de itens
+    const searchItemInput = document.getElementById("search_item");
+    if (searchItemInput) {
+      searchItemInput.addEventListener("keyup", debounce(searchItems, 300));
+    }
+  }
+
+  /**
+   * Adicionar item à lista de saída
+   */
+  function addItemToList() {
+    const itemId = document.getElementById("item_id")?.value;
+    const itemCodigo = document.getElementById("item_codigo")?.value;
+    const itemNome = document.getElementById("item_nome")?.value;
+    const quantidade = document.getElementById("quantidade")?.value;
+    const observacao = document.getElementById("observacao")?.value || "";
 
     if (!itemId || !quantidade) {
       alert("Por favor, selecione um item e informe a quantidade");
@@ -60,184 +234,287 @@ $(document).ready(function () {
     }
 
     // Verificar se o item já existe na lista
-    var exists = false;
-    $(".temp-item").each(function () {
-      if ($(this).data("id") == itemId) {
-        exists = true;
-        return false;
+    const exists = Array.from(document.querySelectorAll(".temp-item")).some(
+      (item) => {
+        return item.dataset.id === itemId;
       }
-    });
+    );
 
     if (exists) {
       alert("Este item já está na lista");
       return;
     }
 
-    // Adicionar o item à lista temporária
-    var html = `
-          <tr class="temp-item" data-id="${itemId}">
-              <td>${itemCodigo}</td>
-              <td>${itemNome}</td>
-              <td>${quantidade}</td>
-              <td>${observacao}</td>
-              <td>
-                  <button type="button" class="btn btn-sm btn-warning btn-edit-item" data-id="${itemId}">
-                      <i class="fas fa-edit"></i>
-                  </button>
-                  <button type="button" class="btn btn-sm btn-danger btn-remove-item" data-id="${itemId}">
-                      <i class="fas fa-trash"></i>
-                  </button>
-              </td>
-              <input type="hidden" name="itens[${itemId}][id]" value="${itemId}">
-              <input type="hidden" name="itens[${itemId}][quantidade]" value="${quantidade}">
-              <input type="hidden" name="itens[${itemId}][observacao]" value="${observacao}">
-          </tr>
+    // Criar a linha da tabela
+    const tr = document.createElement("tr");
+    tr.className = "temp-item";
+    tr.dataset.id = itemId;
+
+    tr.innerHTML = `
+          <td>${itemCodigo}</td>
+          <td>${itemNome}</td>
+          <td>${quantidade}</td>
+          <td>${observacao}</td>
+          <td>
+              <button type="button" class="btn btn-sm btn-warning btn-edit-item me-1" data-id="${itemId}">
+                  <i class="fas fa-edit"></i>
+              </button>
+              <button type="button" class="btn btn-sm btn-danger btn-remove-item" data-id="${itemId}">
+                  <i class="fas fa-trash"></i>
+              </button>
+          </td>
+          <input type="hidden" name="itens[${itemId}][id]" value="${itemId}">
+          <input type="hidden" name="itens[${itemId}][quantidade]" value="${quantidade}">
+          <input type="hidden" name="itens[${itemId}][observacao]" value="${observacao}">
       `;
 
-    $("#items-table tbody").append(html);
+    // Adicionar à tabela
+    const tbody = document.querySelector("#items-table tbody");
+    if (tbody) {
+      tbody.appendChild(tr);
 
-    // Limpar o formulário
-    $("#item_id").val("");
-    $("#item_codigo").val("");
-    $("#item_nome").val("");
-    $("#quantidade").val("");
-    $("#observacao").val("");
+      // Limpar campos
+      if (document.getElementById("item_id"))
+        document.getElementById("item_id").value = "";
+      if (document.getElementById("item_codigo"))
+        document.getElementById("item_codigo").value = "";
+      if (document.getElementById("item_nome"))
+        document.getElementById("item_nome").value = "";
+      if (document.getElementById("quantidade"))
+        document.getElementById("quantidade").value = "";
+      if (document.getElementById("observacao"))
+        document.getElementById("observacao").value = "";
+      if (document.getElementById("search_item")) {
+        document.getElementById("search_item").value = "";
+        document.getElementById("search_item").focus();
+      }
 
-    // Atualizar o contador de itens
-    updateItemsCount();
-  });
-
-  // Remover item da lista temporária
-  $(document).on("click", ".btn-remove-item", function () {
-    var itemId = $(this).data("id");
-
-    // Remover o item da lista
-    $(this).closest("tr").remove();
-
-    // Atualizar o contador de itens
-    updateItemsCount();
-  });
-
-  // Editar item na lista temporária
-  $(document).on("click", ".btn-edit-item", function () {
-    var tr = $(this).closest("tr");
-    var itemId = $(this).data("id");
-    var quantidade = tr
-      .find('input[name="itens[' + itemId + '][quantidade]"]')
-      .val();
-    var observacao = tr
-      .find('input[name="itens[' + itemId + '][observacao]"]')
-      .val();
-
-    // Preencher o modal de edição
-    $("#edit_item_id").val(itemId);
-    $("#edit_quantidade").val(quantidade);
-    $("#edit_observacao").val(observacao);
-
-    // Abrir o modal de edição
-    $("#editItemModal").modal("show");
-  });
-
-  // Confirmar edição de item
-  $(document).on("click", "#btn-confirm-edit", function () {
-    var itemId = $("#edit_item_id").val();
-    var quantidade = $("#edit_quantidade").val();
-    var observacao = $("#edit_observacao").val();
-
-    // Atualizar os valores na lista
-    var tr = $('.temp-item[data-id="' + itemId + '"]');
-    tr.find("td:eq(2)").text(quantidade);
-    tr.find("td:eq(3)").text(observacao);
-    tr.find('input[name="itens[' + itemId + '][quantidade]"]').val(quantidade);
-    tr.find('input[name="itens[' + itemId + '][observacao]"]').val(observacao);
-
-    // Fechar o modal
-    $("#editItemModal").modal("hide");
-  });
-
-  // Função para atualizar o contador de itens
-  function updateItemsCount() {
-    var count = $(".temp-item").length;
-    $(".items-count").text(count);
-
-    // Exibir ou ocultar o botão de salvar
-    if (count > 0) {
-      $("#btn-save").show();
-    } else {
-      $("#btn-save").hide();
+      // Atualizar contador
+      updateItemCount();
     }
   }
 
-  // Habilitar pesquisa de itens
-  $(document).on("keyup", "#search_item", function () {
-    var search = $(this).val().toLowerCase();
+  /**
+   * Editar item na lista
+   */
+  function editItem(btn) {
+    const itemId = btn.dataset.id;
+    const tr = btn.closest("tr");
 
-    $.ajax({
-      url: "../../api/itens.php",
-      type: "GET",
-      data: { search: search },
-      success: function (data) {
-        var items = JSON.parse(data);
-        var html = "";
+    if (tr && itemId) {
+      const quantidade = tr.querySelector(
+        `input[name="itens[${itemId}][quantidade]"]`
+      )?.value;
+      const observacao = tr.querySelector(
+        `input[name="itens[${itemId}][observacao]"]`
+      )?.value;
 
-        items.forEach(function (item) {
-          let tipoText = "Desconhecido";
-          if (item.TIPO == 1) tipoText = "Consumo";
-          else if (item.TIPO == 2) tipoText = "Equipamento";
-          else if (item.TIPO == 3) tipoText = "Empenho";
+      // Preencher modal
+      const editItemIdEl = document.getElementById("edit_item_id");
+      const editQuantidadeEl = document.getElementById("edit_quantidade");
+      const editObservacaoEl = document.getElementById("edit_observacao");
 
-          html += `
-              <li class="list-group-item item-result" data-id="${item.ID}" data-codigo="${item.CODIGO}" data-nome="${item.NOME}">
-                  <strong>${item.CODIGO}</strong> - ${item.NOME} (${tipoText})
-              </li>
-          `;
-        });
+      if (editItemIdEl) editItemIdEl.value = itemId;
+      if (editQuantidadeEl) editQuantidadeEl.value = quantidade;
+      if (editObservacaoEl) editObservacaoEl.value = observacao;
 
-        $("#items-results").html(html);
+      // Abrir modal
+      const editModal = document.getElementById("editItemModal");
+      if (editModal) {
+        const modal = new bootstrap.Modal(editModal);
+        modal.show();
 
-        if (html) {
-          $("#items-results-container").show();
-        } else {
-          $("#items-results-container").hide();
+        // Confirmar edição
+        const btnConfirmEdit = document.getElementById("btn-confirm-edit");
+        if (btnConfirmEdit) {
+          btnConfirmEdit.onclick = function () {
+            const newQuantidade = editQuantidadeEl.value;
+            const newObservacao = editObservacaoEl.value;
+
+            if (!newQuantidade) {
+              alert("Por favor, informe a quantidade");
+              return;
+            }
+
+            // Atualizar valores na tabela
+            tr.querySelector("td:nth-child(3)").textContent = newQuantidade;
+            tr.querySelector("td:nth-child(4)").textContent = newObservacao;
+            tr.querySelector(
+              `input[name="itens[${itemId}][quantidade]"]`
+            ).value = newQuantidade;
+            tr.querySelector(
+              `input[name="itens[${itemId}][observacao]"]`
+            ).value = newObservacao;
+
+            modal.hide();
+          };
         }
-      },
-    });
-  });
-
-  // Selecionar item da pesquisa
-  $(document).on("click", ".item-result", function () {
-    var id = $(this).data("id");
-    var codigo = $(this).data("codigo");
-    var nome = $(this).data("nome");
-
-    $("#item_id").val(id);
-    $("#item_codigo").val(codigo);
-    $("#item_nome").val(nome);
-
-    $("#items-results-container").hide();
-    $("#quantidade").focus();
-  });
-
-  // Relatórios - Alternar opções de agrupamento
-  $(document).on("change", "#agrupar", function () {
-    var value = $(this).val();
-
-    if (value == "item") {
-      $("#item-group-options").show();
-      $("#setor-group-options").hide();
-      $("#data-group-options").hide();
-    } else if (value == "setor") {
-      $("#item-group-options").hide();
-      $("#setor-group-options").show();
-      $("#data-group-options").hide();
-    } else if (value == "data") {
-      $("#item-group-options").hide();
-      $("#setor-group-options").hide();
-      $("#data-group-options").show();
-    } else {
-      $("#item-group-options").hide();
-      $("#setor-group-options").hide();
-      $("#data-group-options").hide();
+      }
     }
-  });
-});
+  }
+
+  /**
+   * Atualizar contador de itens
+   */
+  function updateItemCount() {
+    const count = document.querySelectorAll(".temp-item").length;
+    const counters = document.querySelectorAll(".items-count");
+
+    counters.forEach((counter) => {
+      counter.textContent = count;
+    });
+
+    // Exibir ou ocultar botão de salvar
+    const btnSave = document.getElementById("btn-save");
+    if (btnSave) {
+      btnSave.style.display = count > 0 ? "inline-block" : "none";
+    }
+  }
+
+  /**
+   * Pesquisar itens com debounce
+   */
+  function searchItems() {
+    const search = document.getElementById("search_item")?.value;
+    const resultsContainer = document.getElementById("items-results-container");
+    const resultsList = document.getElementById("items-results");
+
+    if (!search || search.length < 2 || !resultsList) {
+      if (resultsContainer) resultsContainer.classList.add("d-none");
+      return;
+    }
+
+    // Realizar a busca via AJAX
+    fetch(`../../api/itens.php?search=${encodeURIComponent(search)}`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (data && data.length > 0) {
+          let html = "";
+
+          data.forEach((item) => {
+            html += `<li class="list-group-item item-result" data-id="${item.ID}" data-codigo="${item.CODIGO}" data-nome="${item.NOME}">
+                          <strong>${item.CODIGO}</strong> - ${item.NOME}
+                      </li>`;
+          });
+
+          resultsList.innerHTML = html;
+          resultsContainer.classList.remove("d-none");
+
+          // Adicionar evento aos resultados
+          document.querySelectorAll(".item-result").forEach((item) => {
+            item.addEventListener("click", selectSearchItem);
+          });
+        } else {
+          resultsList.innerHTML =
+            '<li class="list-group-item">Nenhum item encontrado</li>';
+          resultsContainer.classList.remove("d-none");
+        }
+      })
+      .catch((error) => {
+        console.error("Erro na requisição:", error);
+        resultsList.innerHTML =
+          '<li class="list-group-item">Erro ao buscar itens</li>';
+        resultsContainer.classList.remove("d-none");
+      });
+  }
+
+  /**
+   * Selecionar item da lista de resultados
+   */
+  function selectSearchItem() {
+    const id = this.dataset.id;
+    const codigo = this.dataset.codigo;
+    const nome = this.dataset.nome;
+
+    document.getElementById("item_id").value = id;
+    document.getElementById("item_codigo").value = codigo;
+    document.getElementById("item_nome").value = nome;
+
+    document.getElementById("items-results-container").classList.add("d-none");
+    document.getElementById("quantidade").focus();
+  }
+
+  /**
+   * Funções específicas para páginas de itens
+   */
+  function initItensFunctions() {
+    // Confirmar exclusão
+    document.addEventListener("click", function (e) {
+      if (e.target.closest(".btn-delete")) {
+        e.preventDefault();
+        const btn = e.target.closest(".btn-delete");
+        const id = btn.dataset.id;
+
+        const confirmButton = document.getElementById("btn-confirm-delete");
+        if (confirmButton) {
+          confirmButton.href = `delete.php?id=${id}`;
+
+          const deleteModal = new bootstrap.Modal(
+            document.getElementById("deleteModal")
+          );
+          deleteModal.show();
+        }
+      }
+    });
+  }
+
+  /**
+   * Funções específicas para página de relatórios
+   */
+  function initRelatoriosFunctions() {
+    // Alternar opções de agrupamento
+    const agruparSelect = document.getElementById("agrupamento");
+    if (agruparSelect) {
+      agruparSelect.addEventListener("change", function () {
+        const value = this.value;
+
+        document
+          .getElementById("item-group-options")
+          ?.classList.toggle("d-none", value !== "item");
+        document
+          .getElementById("setor-group-options")
+          ?.classList.toggle("d-none", value !== "setor");
+        document
+          .getElementById("data-group-options")
+          ?.classList.toggle("d-none", value !== "data");
+      });
+    }
+  }
+
+  /**
+   * Ajustes para layout responsivo
+   */
+  function handleResponsiveLayout() {
+    // Verificar largura da tela e ajustar sidebar
+    function checkWidth() {
+      if (window.innerWidth < 768) {
+        document.getElementById("sidebar")?.classList.add("active");
+        document.getElementById("content")?.classList.add("active");
+      } else {
+        document.getElementById("sidebar")?.classList.remove("active");
+        document.getElementById("content")?.classList.remove("active");
+      }
+    }
+
+    // Executar na inicialização
+    checkWidth();
+
+    // Executar ao redimensionar
+    window.addEventListener("resize", debounce(checkWidth, 250));
+  }
+
+  /**
+   * Função de debounce para limitar execução repetida de funções
+   */
+  function debounce(func, wait) {
+    let timeout;
+    return function () {
+      const context = this;
+      const args = arguments;
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        func.apply(context, args);
+      }, wait);
+    };
+  }
+})();

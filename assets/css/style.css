@@ -1,8 +1,11 @@
-/* assets/css/style.css - Versão corrigida */
+/* assets/css/style.css - Versão otimizada */
 
-/* Variáveis */
+/* Variáveis CSS para facilitar manutenção */
 :root {
+  /* Cores principais */
   --primary-color: #007bff;
+  --primary-dark: #0069d9;
+  --primary-light: #cfe2ff;
   --secondary-color: #6c757d;
   --success-color: #28a745;
   --danger-color: #dc3545;
@@ -10,84 +13,70 @@
   --info-color: #17a2b8;
   --dark-color: #343a40;
   --light-color: #f8f9fa;
+
+  /* Dimensões */
   --sidebar-width: 250px;
+  --header-height: 60px;
+  --border-radius: 0.25rem;
+
+  /* Transições */
+  --transition-speed: 0.3s;
+
+  /* Sombras */
+  --box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
+  --box-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
-/* Estilos gerais */
+/* Reset básico e estilos gerais */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   font-family: "Roboto", sans-serif;
   background-color: #f5f5f5;
   overflow-x: hidden;
   position: relative;
   min-height: 100vh;
-  margin: 0;
-  padding: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Estrutura principal - wrapper */
+/* Layout principal */
 .wrapper {
   display: flex;
   width: 100%;
-  align-items: stretch;
+  min-height: 100vh;
   position: relative;
 }
 
-/* Estilo do sidebar */
+/* Sidebar */
 #sidebar {
-  width: 250px;
-  min-width: 250px;
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
   min-height: 100vh;
   background-color: var(--dark-color);
   color: #fff;
-  transition: all 0.3s;
+  transition: all var(--transition-speed);
   position: fixed;
   left: 0;
   top: 0;
   height: 100%;
   z-index: 998;
+  overflow-y: auto;
 }
 
-/* Ajuste crucial do conteúdo */
-#content {
-  width: calc(100% - 250px);
-  margin-left: 250px; /* Este é o ajuste mais importante */
-  padding: 15px;
-  min-height: 100vh;
-  transition: all 0.3s;
+#sidebar.active {
+  margin-left: calc(-1 * var(--sidebar-width));
 }
 
-/* Para dispositivos móveis */
-@media (max-width: 768px) {
-  #sidebar {
-    margin-left: -250px;
-  }
-
-  #content {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  #sidebar.active {
-    margin-left: 0;
-  }
-
-  #content.active {
-    margin-left: 250px;
-    width: calc(100% - 250px);
-  }
-}
-
-/* Navbar superior */
-.navbar {
-  padding: 15px 10px;
-  background: var(--primary-color);
-  border: none;
-  border-radius: 0;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* Estilo do cabeçalho do sidebar */
 .sidebar-header {
   padding: 20px;
   background: rgba(0, 0, 0, 0.2);
@@ -98,13 +87,18 @@ body {
   padding: 20px 0;
 }
 
+#sidebar ul {
+  padding-left: 0;
+  list-style-type: none;
+}
+
 #sidebar ul li a {
   padding: 10px 15px;
   font-size: 1rem;
   display: block;
   color: #fff;
   text-decoration: none;
-  transition: all 0.3s;
+  transition: all var(--transition-speed);
 }
 
 #sidebar ul li a:hover {
@@ -113,10 +107,38 @@ body {
 
 #sidebar ul li a i {
   margin-right: 10px;
+  width: 20px;
+  text-align: center;
 }
 
 #sidebar ul li.active > a {
   background-color: var(--primary-color);
+}
+
+/* Conteúdo principal */
+#content {
+  width: calc(100% - var(--sidebar-width));
+  margin-left: var(--sidebar-width);
+  padding: 15px;
+  min-height: 100vh;
+  transition: all var(--transition-speed);
+  display: flex;
+  flex-direction: column;
+}
+
+#content.active {
+  width: 100%;
+  margin-left: 0;
+}
+
+/* Navbar superior */
+.navbar {
+  padding: 15px 10px;
+  background: var(--primary-color);
+  border: none;
+  border-radius: 0;
+  margin-bottom: 20px;
+  box-shadow: var(--box-shadow-sm);
 }
 
 /* Botão para colapsar sidebar */
@@ -124,6 +146,8 @@ body {
   background: transparent;
   border: none;
   color: white;
+  padding: 8px 12px;
+  border-radius: var(--border-radius);
 }
 
 #sidebarCollapse:hover {
@@ -132,10 +156,10 @@ body {
 
 /* Cards */
 .card {
-  border-radius: 10px;
+  border-radius: var(--border-radius);
   border: none;
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s ease;
+  box-shadow: var(--box-shadow);
+  transition: transform var(--transition-speed) ease;
   margin-bottom: 20px;
 }
 
@@ -146,16 +170,19 @@ body {
 .card-header {
   background-color: white;
   border-bottom: 1px solid rgba(0, 0, 0, 0.125);
-  border-top-left-radius: 10px !important;
-  border-top-right-radius: 10px !important;
+  border-top-left-radius: var(--border-radius) !important;
+  border-top-right-radius: var(--border-radius) !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 /* Botões */
 .btn {
-  border-radius: 5px;
+  border-radius: var(--border-radius);
   padding: 0.5rem 1rem;
   font-weight: 500;
-  transition: all 0.3s ease;
+  transition: all var(--transition-speed) ease;
 }
 
 .btn-primary {
@@ -164,25 +191,133 @@ body {
 }
 
 .btn-primary:hover {
-  background-color: #0069d9;
-  border-color: #0062cc;
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
 }
 
-/* Container para espaçamento correto */
-.container-fluid {
-  padding: 0 20px;
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Utilitários para display de itens */
+.item-name-display {
+  min-height: 38px;
+  line-height: 24px;
+  padding: 6px 12px;
+  font-size: 1rem;
+  border-radius: var(--border-radius);
+  border: 1px solid #ced4da;
+  background-color: #f8f9fa !important;
+  transition: border-color var(--transition-speed) ease-in-out,
+    box-shadow var(--transition-speed) ease-in-out;
+}
+
+.item-name-display.item-found {
+  color: #212529;
+  background-color: #e8f4f8 !important;
+  border-color: #86b7fe;
+}
+
+.item-name-display.item-not-found {
+  color: var(--danger-color);
+  background-color: #f8d7da !important;
+  border-color: #f5c2c7;
+}
+
+.item-name-display.item-searching {
+  color: var(--primary-color);
+  background-color: var(--primary-light) !important;
+  border-color: #9ec5fe;
+}
+
+/* Tabelas */
+.table {
+  width: 100%;
+  margin-bottom: 1rem;
+  color: #212529;
+  vertical-align: middle;
+}
+
+.table th {
+  font-weight: 600;
+  background-color: #f8f9fa;
+  padding: 0.75rem;
+  vertical-align: middle;
+  border-bottom-width: 2px;
+}
+
+.table td {
+  padding: 0.75rem;
+  vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.075);
+}
+
+.table-responsive {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Estados específicos para tabelas */
+tr.low-stock td {
+  background-color: #fff3cd;
+}
+
+.text-negative {
+  color: var(--danger-color);
+  font-weight: bold;
+}
+
+/* Input groups */
+.input-group .btn-outline-primary {
+  border-color: #ced4da;
+  background-color: #f8f9fa;
+}
+
+.input-group .btn-outline-primary:hover {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+/* Grupos de resultados de pesquisa */
+#items-results-container {
+  position: absolute;
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: var(--box-shadow);
+}
+
+.list-group-item.item-result {
+  cursor: pointer;
+}
+
+.list-group-item.item-result:hover {
+  background-color: var(--light-color);
 }
 
 /* Menu dropdown para cadastros */
-ul.collapse {
-  list-style: none;
-  padding-left: 0;
+#cadastrosSubmenu,
+#relatoriosSubmenu {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+#cadastrosSubmenu a,
+#relatoriosSubmenu a {
+  padding-left: 30px;
 }
 
 /* Responsividade */
 @media (max-width: 768px) {
   #sidebar {
-    margin-left: -250px;
+    margin-left: calc(-1 * var(--sidebar-width));
   }
 
   #sidebar.active {
@@ -195,91 +330,63 @@ ul.collapse {
   }
 
   #content.active {
-    margin-left: 250px;
-    width: calc(100% - 250px);
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
   }
 
   #sidebarCollapse span {
     display: none;
   }
-}
 
-/* Correção para dropdown de cadastros */
-#cadastrosSubmenu {
-  background-color: rgba(0, 0, 0, 0.2);
-}
-
-#cadastrosSubmenu a {
-  padding-left: 30px;
-}
-
-/* Estilo para o display do nome do item */
-.item-name-display {
-  min-height: 38px;
-  line-height: 24px;
-  padding: 6px 12px;
-  font-size: 1rem;
-  border-radius: 4px;
-  border: 1px solid #ced4da;
-  background-color: #f8f9fa !important; /* Sobrescreve qualquer estilo inline */
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-
-/* Estados diferentes do display de nome */
-.item-name-display.item-found {
-  color: #212529;
-  background-color: #e8f4f8 !important;
-  border-color: #86b7fe;
-}
-
-.item-name-display.item-not-found {
-  color: #dc3545;
-  background-color: #f8d7da !important;
-  border-color: #f5c2c7;
-}
-
-.item-name-display.item-searching {
-  color: #0d6efd;
-  background-color: #cfe2ff !important;
-  border-color: #9ec5fe;
-}
-
-/* Estilos para a tabela de itens */
-.table th {
-  font-weight: 600;
-  background-color: #f8f9fa;
-}
-
-/* Estilo para o botão de busca no grupo de input */
-.input-group .btn-outline-primary {
-  border-color: #ced4da;
-  background-color: #f8f9fa;
-}
-
-.input-group .btn-outline-primary:hover {
-  background-color: #0d6efd;
-  color: white;
-  border-color: #0d6efd;
-}
-
-/* Estilo para destacar quantidades negativas */
-.text-negative {
-  color: #dc3545;
-  font-weight: bold;
-}
-
-/* Estilo para linhas com estoque baixo */
-tr.low-stock td {
-  background-color: #fff3cd;
-}
-
-/* Melhorias para responsividade em telas pequenas */
-@media (max-width: 767.98px) {
   .item-name-display {
     margin-top: 10px;
   }
 
   .col-md-2.d-flex.align-items-end {
     margin-top: 10px;
+  }
+}
+
+/* Classes de utilidade */
+.w-100 {
+  width: 100% !important;
+}
+
+.text-end {
+  text-align: right !important;
+}
+
+.text-center {
+  text-align: center !important;
+}
+
+/* Impressão */
+@media print {
+  #sidebar,
+  .navbar,
+  .no-print,
+  button {
+    display: none !important;
+  }
+
+  #content {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #ddd;
+  }
+
+  body {
+    background-color: white !important;
+  }
+
+  .table th {
+    background-color: #f8f9fa !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }

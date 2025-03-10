@@ -16,12 +16,15 @@ class Database {
         $this->username = defined('DB_USER') ? DB_USER : 'almoxarifado';
         $this->password = defined('DB_PASS') ? DB_PASS : 'Almoxarifado1*';
         
-        // Criar conexão
+        // Criar conexão com opções otimizadas
         try {
-            $this->conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, $this->username, $this->password);
-            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $this->conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-            $this->conn->exec("set names utf8");
+            $options = [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false, // Usar prepared statements nativos
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+            ];
+            $this->conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, $this->username, $this->password, $options);
         } catch(PDOException $e) {
             $this->error = $e->getMessage();
             die("ERRO: Não foi possível conectar ao banco de dados. " . $this->error);
@@ -34,11 +37,11 @@ class Database {
         return $this;
     }
 
-    // Bind values
+    // Bind values com tipagem melhorada
     public function bind($param, $value, $type = null) {
         if(is_null($type)) {
             switch(true) {
-                case is_int($value):
+                case is_int($value) || (is_numeric($value) && intval($value) == $value):
                     $type = PDO::PARAM_INT;
                     break;
                 case is_bool($value):
@@ -52,6 +55,14 @@ class Database {
             }
         }
         $this->stmt->bindValue($param, $value, $type);
+        return $this;
+    }
+
+    // Bind múltiplos parâmetros de uma vez
+    public function bindParams($params) {
+        foreach ($params as $param => $value) {
+            $this->bind($param, $value);
+        }
         return $this;
     }
 
@@ -115,6 +126,15 @@ class Database {
         $sql = "SHOW TABLES LIKE :table";
         $this->query($sql);
         $this->bind(':table', $table);
+        $this->execute();
+        return $this->rowCount() > 0;
+    }
+    
+    // Verificar se uma coluna existe
+    public function columnExists($table, $column) {
+        $sql = "SHOW COLUMNS FROM `$table` LIKE :column";
+        $this->query($sql);
+        $this->bind(':column', $column);
         $this->execute();
         return $this->rowCount() > 0;
     }

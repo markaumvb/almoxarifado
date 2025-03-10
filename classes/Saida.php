@@ -1,12 +1,13 @@
 <?php
 class Saida {
     private $db;
+    private $table = 'SAIDA';
 
     public function __construct() {
         $this->db = new Database();
     }
 
-    // Registrar saída
+    // Registrar saída - Método otimizado
     public function add($data) {
         try {
             $this->db->beginTransaction();
@@ -21,19 +22,21 @@ class Saida {
             }
             
             // Inserir a saída
-            $this->db->query('INSERT INTO SAIDA (CODIGO, QTDE, ID_SERVIDOR, DATA, OBS) 
-                            VALUES (:codigo, :qtde, :id_servidor, :data, :obs)');
+            $this->db->query("INSERT INTO {$this->table} (CODIGO, QTDE, ID_SERVIDOR, DATA, OBS) 
+                            VALUES (:codigo, :qtde, :id_servidor, :data, :obs)");
             
-            $this->db->bind(':codigo', $data['codigo']);
-            $this->db->bind(':qtde', $data['qtde']);
-            $this->db->bind(':id_servidor', $data['id_servidor']);
-            $this->db->bind(':data', $data['data']);
-            $this->db->bind(':obs', $data['obs']);
+            $this->db->bindParams([
+                ':codigo' => $data['codigo'],
+                ':qtde' => $data['qtde'],
+                ':id_servidor' => $data['id_servidor'],
+                ':data' => $data['data'],
+                ':obs' => $data['obs']
+            ]);
             
             $this->db->execute();
             $saida_id = $this->db->lastInsertId();
             
-            // Atualizar saldo do item (permitir ficar negativo)
+            // Atualizar saldo do item
             if (!$item->updateSaldo($data['codigo'], $data['qtde'], 'saida')) {
                 $this->db->rollBack();
                 return false;
@@ -50,13 +53,13 @@ class Saida {
         }
     }
 
-    // Atualizar saída
+    // Atualizar saída - Método otimizado
     public function update($data) {
         try {
             $this->db->beginTransaction();
             
             // Obter dados da saída atual
-            $this->db->query('SELECT * FROM SAIDA WHERE ID = :id');
+            $this->db->query("SELECT * FROM {$this->table} WHERE ID = :id");
             $this->db->bind(':id', $data['id']);
             $saidaAtual = $this->db->single();
             
@@ -69,14 +72,20 @@ class Saida {
             $qtdeDiff = $data['qtde'] - $saidaAtual['QTDE'];
             
             // Atualizar saída
-            $this->db->query('UPDATE SAIDA 
+            $this->db->query("UPDATE {$this->table} 
                             SET QTDE = :qtde, 
-                                OBS = :obs
-                            WHERE ID = :id');
+                                OBS = :obs,
+                                ID_SERVIDOR = :id_servidor,
+                                DATA = :data
+                            WHERE ID = :id");
             
-            $this->db->bind(':id', $data['id']);
-            $this->db->bind(':qtde', $data['qtde']);
-            $this->db->bind(':obs', $data['obs']);
+            $this->db->bindParams([
+                ':id' => $data['id'],
+                ':qtde' => $data['qtde'],
+                ':obs' => $data['obs'],
+                ':id_servidor' => $data['id_servidor'],
+                ':data' => $data['data']
+            ]);
             
             $this->db->execute();
             
@@ -103,13 +112,13 @@ class Saida {
         }
     }
 
-    // Excluir saída
+    // Excluir saída - Método otimizado
     public function delete($id) {
         try {
             $this->db->beginTransaction();
             
             // Obter dados da saída
-            $this->db->query('SELECT * FROM SAIDA WHERE ID = :id');
+            $this->db->query("SELECT * FROM {$this->table} WHERE ID = :id");
             $this->db->bind(':id', $id);
             $saida = $this->db->single();
             
@@ -119,7 +128,7 @@ class Saida {
             }
             
             // Excluir saída
-            $this->db->query('DELETE FROM SAIDA WHERE ID = :id');
+            $this->db->query("DELETE FROM {$this->table} WHERE ID = :id");
             $this->db->bind(':id', $id);
             $this->db->execute();
             
@@ -144,7 +153,7 @@ class Saida {
     // Obter saída por ID
     public function getSaidaById($id) {
         try {
-            $this->db->query('SELECT * FROM SAIDA WHERE ID = :id');
+            $this->db->query("SELECT * FROM {$this->table} WHERE ID = :id");
             $this->db->bind(':id', $id);
             return $this->db->single();
         } catch (PDOException $e) {
@@ -153,16 +162,19 @@ class Saida {
         }
     }
 
-    // Obter saídas por período
+    // Obter saídas por período - Método otimizado com JOIN único
     public function getSaidasByPeriodo($dataInicio, $dataFim) {
         try {
-            $this->db->query('SELECT s.*, i.NOME as item_nome, sv.NOME as servidor_nome, se.NOME as setor_nome 
-                            FROM SAIDA s
-                            LEFT JOIN ITENS i ON s.CODIGO = i.CODIGO
-                            LEFT JOIN SERVIDOR sv ON s.ID_SERVIDOR = sv.ID
-                            LEFT JOIN SETOR se ON sv.ID_SETOR = se.ID
-                            WHERE s.DATA BETWEEN :data_inicio AND :data_fim
-                            ORDER BY s.DATA DESC, s.ID DESC');
+            $this->db->query("SELECT s.*, 
+                            i.NOME as item_nome, 
+                            sv.NOME as servidor_nome, 
+                            se.NOME as setor_nome 
+                        FROM {$this->table} s
+                        LEFT JOIN ITENS i ON s.CODIGO = i.CODIGO
+                        LEFT JOIN SERVIDOR sv ON s.ID_SERVIDOR = sv.ID
+                        LEFT JOIN SETOR se ON sv.ID_SETOR = se.ID
+                        WHERE s.DATA BETWEEN :data_inicio AND :data_fim
+                        ORDER BY s.DATA DESC, s.ID DESC");
             
             $this->db->bind(':data_inicio', $dataInicio);
             $this->db->bind(':data_fim', $dataFim);
@@ -174,7 +186,7 @@ class Saida {
         }
     }
 
-    // Adicionar múltiplas saídas (para importação)
+    // Adicionar múltiplas saídas (para importação) - Método otimizado
     public function addMultiple($data) {
         try {
             $result = [
@@ -201,10 +213,40 @@ class Saida {
                     'obs' => $itemData['observacao']
                 ];
                 
-                $saida_id = $this->add($saida_data);
+                // Verificar item
+                $item = new Item();
+                $itemInfo = $item->getItemByCodigo($saida_data['codigo']);
                 
-                if ($saida_id) {
-                    $result['items_saved']++;
+                if (!$itemInfo) {
+                    $result['items_failed']++;
+                    continue;
+                }
+                
+                // Inserir saída
+                $this->db->query("INSERT INTO {$this->table} (CODIGO, QTDE, ID_SERVIDOR, DATA, OBS) 
+                                VALUES (:codigo, :qtde, :id_servidor, :data, :obs)");
+                
+                $this->db->bindParams([
+                    ':codigo' => $saida_data['codigo'],
+                    ':qtde' => $saida_data['qtde'],
+                    ':id_servidor' => $saida_data['id_servidor'],
+                    ':data' => $saida_data['data'],
+                    ':obs' => $saida_data['obs']
+                ]);
+                
+                if ($this->db->execute()) {
+                    // Atualizar saldo
+                    $novoSaldo = $itemInfo['SALDO'] - $saida_data['qtde'];
+                    
+                    $this->db->query("UPDATE ITENS SET SALDO = :saldo WHERE CODIGO = :codigo");
+                    $this->db->bind(':saldo', $novoSaldo);
+                    $this->db->bind(':codigo', $saida_data['codigo']);
+                    
+                    if ($this->db->execute()) {
+                        $result['items_saved']++;
+                    } else {
+                        $result['items_failed']++;
+                    }
                 } else {
                     $result['items_failed']++;
                 }
@@ -234,15 +276,16 @@ class Saida {
         }
     }
 
-    // Obter saídas agrupadas por item
+    // Obter saídas agrupadas por item - Método otimizado
     public function getSaidasAgrupadasPorItem($dataInicio, $dataFim) {
         try {
-            $this->db->query('SELECT i.CODIGO, i.NOME as item_nome, SUM(s.QTDE) as total_qtde
-                            FROM SAIDA s
+            $this->db->query("SELECT i.CODIGO, i.NOME as item_nome, SUM(s.QTDE) as total_qtde,
+                             COUNT(s.ID) as total_saidas
+                            FROM {$this->table} s
                             JOIN ITENS i ON s.CODIGO = i.CODIGO
                             WHERE s.DATA BETWEEN :data_inicio AND :data_fim
                             GROUP BY i.CODIGO, i.NOME
-                            ORDER BY total_qtde DESC');
+                            ORDER BY total_qtde DESC");
             
             $this->db->bind(':data_inicio', $dataInicio);
             $this->db->bind(':data_fim', $dataFim);
@@ -254,16 +297,19 @@ class Saida {
         }
     }
 
-    // Obter saídas agrupadas por setor
+    // Obter saídas agrupadas por setor - Método otimizado
     public function getSaidasAgrupadasPorSetor($dataInicio, $dataFim) {
         try {
-            $this->db->query('SELECT se.ID, se.NOME as setor_nome, SUM(s.QTDE) as total_qtde
-                            FROM SAIDA s
+            $this->db->query("SELECT se.ID, se.NOME as setor_nome, 
+                             SUM(s.QTDE) as total_qtde,
+                             COUNT(DISTINCT s.ID_SERVIDOR) as total_servidores,
+                             COUNT(s.ID) as total_saidas
+                            FROM {$this->table} s
                             JOIN SERVIDOR sv ON s.ID_SERVIDOR = sv.ID
                             JOIN SETOR se ON sv.ID_SETOR = se.ID
                             WHERE s.DATA BETWEEN :data_inicio AND :data_fim
                             GROUP BY se.ID, se.NOME
-                            ORDER BY total_qtde DESC');
+                            ORDER BY total_qtde DESC");
             
             $this->db->bind(':data_inicio', $dataInicio);
             $this->db->bind(':data_fim', $dataFim);
@@ -275,14 +321,18 @@ class Saida {
         }
     }
 
-    // Obter saídas agrupadas por data
+    // Obter saídas agrupadas por data - Método otimizado
     public function getSaidasAgrupadasPorData($dataInicio, $dataFim) {
         try {
-            $this->db->query('SELECT DATE(s.DATA) as data, COUNT(*) as total_saidas, SUM(s.QTDE) as total_qtde
-                            FROM SAIDA s
+            $this->db->query("SELECT DATE(s.DATA) as data, 
+                              COUNT(*) as total_saidas, 
+                              SUM(s.QTDE) as total_qtde,
+                              COUNT(DISTINCT s.ID_SERVIDOR) as total_servidores,
+                              COUNT(DISTINCT s.CODIGO) as total_itens
+                            FROM {$this->table} s
                             WHERE s.DATA BETWEEN :data_inicio AND :data_fim
                             GROUP BY DATE(s.DATA)
-                            ORDER BY data');
+                            ORDER BY data");
             
             $this->db->bind(':data_inicio', $dataInicio);
             $this->db->bind(':data_fim', $dataFim);

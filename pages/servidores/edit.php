@@ -1,5 +1,4 @@
 <?php
-// pages/servidores/edit.php
 
 // Incluir o cabeçalho
 include_once '../../includes/header.php';
@@ -43,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $telefone = filter_input(INPUT_POST, 'telefone', FILTER_SANITIZE_STRING);
     $status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_STRING);
     
+    $telefone = empty($telefone) ? null : $telefone;
     // Verificar dados obrigatórios
     if (empty($nome) || empty($matricula)) {
         setMessage('Por favor, preencha todos os campos obrigatórios.', 'danger');

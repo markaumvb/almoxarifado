@@ -30,13 +30,25 @@ class Database {
 
     // Preparar declaração com query
     public function query($sql) {
-        $this->stmt = $this->conn->prepare($sql);
-        return $this;
+        try {
+            $this->stmt = $this->conn->prepare($sql);
+            if (!$this->stmt) {
+                throw new Exception("Falha ao preparar a consulta");
+            }
+            return $this;
+        } catch (Exception $e) {
+            error_log("Erro na consulta: " . $e->getMessage());
+            throw $e;
+        }
     }
 
     // Bind values
     public function bind($param, $value, $type = null) {
-        if(is_null($type)) {
+        if (!$this->stmt) {
+            throw new Exception("Prepared statement não inicializado");
+        }
+    
+        if (is_null($type)) {
             switch(true) {
                 case is_int($value):
                     $type = PDO::PARAM_INT;
@@ -44,10 +56,14 @@ class Database {
                 case is_bool($value):
                     $type = PDO::PARAM_BOOL;
                     break;
+                case is_null($value):
+                    $type = PDO::PARAM_NULL;
+                    break;
                 default:
                     $type = PDO::PARAM_STR;
             }
         }
+        
         $this->stmt->bindValue($param, $value, $type);
         return $this;
     }

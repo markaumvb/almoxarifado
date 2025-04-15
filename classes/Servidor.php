@@ -38,11 +38,16 @@ class Servidor {
     // Obter servidor por ID
     public function getServidorById($id) {
         try {
-            $this->db->query('SELECT * FROM SERVIDOR WHERE ID = :id');
+            // Verifique o resultado do query
+            $result = $this->db->query('SELECT * FROM SERVIDOR WHERE ID = :id');
+            if ($result === false) {
+                throw new Exception('Falha ao preparar a consulta');
+            }
+            
             $this->db->bind(':id', $id);
             return $this->db->single();
-        } catch (PDOException $e) {
-            error_log('Erro ao buscar servidor por ID: ' . $e->getMessage());
+        } catch (Exception $e) {
+            error_log('Erro ao buscar servidor: ' . $e->getMessage());
             return false;
         }
     }
@@ -84,34 +89,40 @@ class Servidor {
     // Atualizar servidor
     public function update($data) {
         try {   
+            // Simplificar o tratamento do telefone
             $telefone = empty($data['telefone']) ? null : $data['telefone'];
+            
+            // Iniciar transação para garantir consistência
             $this->db->beginTransaction();
             
+            // Query simplificada com todos os campos
             $this->db->query('UPDATE SERVIDOR 
-                            SET NOME = :nome, 
-                                MATRICULA = :matricula, 
-                                ID_SETOR = :id_setor, 
-                                EMAIL = :email,
-                                TELEFONE = :telefone,
-                                STATUS = :status 
-                            WHERE ID = :id');
+                             SET NOME = :nome, 
+                                 MATRICULA = :matricula, 
+                                 ID_SETOR = :id_setor, 
+                                 EMAIL = :email,
+                                 STATUS = :status,
+                                 TELEFONE = :telefone 
+                             WHERE ID = :id');
             
+            // Bind de todos os parâmetros
             $this->db->bind(':id', $data['id']);
             $this->db->bind(':nome', $data['nome']);
             $this->db->bind(':matricula', $data['matricula']);
             $this->db->bind(':id_setor', $data['id_setor']);
             $this->db->bind(':email', $data['email']);
-            $this->db->bind(':telefone', $telefone);
             $this->db->bind(':status', $data['status']);
+            $this->db->bind(':telefone', $telefone);
     
+            // Executar a query
             $result = $this->db->execute();
             
-            // Confirmar a transação se tudo ocorreu bem
+            // Commit da transação
             $this->db->commit();
             
             return $result;
         } catch (PDOException $e) {
-            // Reverter mudanças em caso de erro
+            // Rollback em caso de erro
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
             }

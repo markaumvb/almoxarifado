@@ -83,16 +83,9 @@ class Servidor {
 
     // Atualizar servidor
     public function update($data) {
-        try {
-            // Verificar se a coluna TELEFONE existe na tabela
-            $this->db->query("SHOW COLUMNS FROM SERVIDOR LIKE 'TELEFONE'");
-            $column_exists = $this->db->single();
-            
-            if (!$column_exists) {
-                // Adicionar a coluna TELEFONE se não existir
-                $this->db->query("ALTER TABLE SERVIDOR ADD COLUMN TELEFONE VARCHAR(15) NULL");
-                $this->db->execute();
-            }
+        try {   
+            $telefone = empty($data['telefone']) ? null : $data['telefone'];
+            $this->db->beginTransaction();
             
             $this->db->query('UPDATE SERVIDOR 
                             SET NOME = :nome, 
@@ -108,11 +101,20 @@ class Servidor {
             $this->db->bind(':matricula', $data['matricula']);
             $this->db->bind(':id_setor', $data['id_setor']);
             $this->db->bind(':email', $data['email']);
-            $this->db->bind(':telefone', $data['telefone']);
+            $this->db->bind(':telefone', $telefone);
             $this->db->bind(':status', $data['status']);
-
-            return $this->db->execute();
+    
+            $result = $this->db->execute();
+            
+            // Confirmar a transação se tudo ocorreu bem
+            $this->db->commit();
+            
+            return $result;
         } catch (PDOException $e) {
+            // Reverter mudanças em caso de erro
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log('Erro ao atualizar servidor: ' . $e->getMessage());
             return false;
         }
